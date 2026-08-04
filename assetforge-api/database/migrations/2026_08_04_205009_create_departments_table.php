@@ -13,7 +13,28 @@ return new class extends Migration
     {
         Schema::create('departments', function (Blueprint $table) {
             $table->id();
+
+            $table->uuid('uuid')->unique();
+
+            $table->foreignId('company_id')
+                  ->constrained()
+                  ->cascadeOnUpdate()
+                  ->restrictOnDelete();
+
+            $table->string('name');
+            $table->string('code', 50);
+
+            $table->unique(['company_id', 'name']);
+            $table->text('description')->nullable();
+
+            $table->string('status')->default('active');
+
             $table->timestamps();
+            $table->softDeletes();
+
+            $table->index('company_id');
+            $table->index('name');
+            $table->index('status');
         });
     }
 

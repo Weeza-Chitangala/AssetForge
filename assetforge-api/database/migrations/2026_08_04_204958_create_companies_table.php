@@ -13,7 +13,36 @@ return new class extends Migration
     {
         Schema::create('companies', function (Blueprint $table) {
             $table->id();
+
+            $table->uuid('uuid')->unique();
+
+            $table->foreignId('organization_id')
+                  ->constrained()
+                  ->cascadeOnUpdate()
+                  ->restrictOnDelete();
+
+            $table->string('name');
+            $table->string('code', 50);
+
+            $table->unique(['organization_id', 'name']);
+
+            $table->string('registration_number')->nullable();
+            $table->string('tax_number')->nullable();
+
+            $table->string('email')->nullable();
+            $table->string('phone')->nullable();
+            $table->string('website')->nullable();
+
+            $table->text('address')->nullable();
+
+            $table->string('status')->default('active');
+
             $table->timestamps();
+            $table->softDeletes();
+
+            $table->index('organization_id');
+            $table->index('name');
+            $table->index('status');
         });
     }
 

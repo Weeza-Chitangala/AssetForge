@@ -13,7 +13,28 @@ return new class extends Migration
     {
         Schema::create('organizations', function (Blueprint $table) {
             $table->id();
+
+            $table->uuid('uuid')->unique();
+
+            $table->foreignId('tenant_id')
+                  ->constrained()
+                  ->cascadeOnUpdate()
+                  ->restrictOnDelete();
+
+            $table->string('name');
+            $table->string('code', 50);
+
+            $table->unique(['tenant_id', 'name']);
+            $table->text('description')->nullable();
+
+            $table->string('status')->default('active');
+
             $table->timestamps();
+            $table->softDeletes();
+
+            $table->index('tenant_id');
+            $table->index('name');
+            $table->index('status');
         });
     }
 
