@@ -19,4 +19,16 @@ Route::prefix('v1')->group(function () {
 
     });
 
+        Route::middleware([
+        'auth:sanctum',
+        'permission:settings.manage',
+    ])->get('/test-permission', function () {
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Permission granted',
+        ]);
+
+    });
+
 });

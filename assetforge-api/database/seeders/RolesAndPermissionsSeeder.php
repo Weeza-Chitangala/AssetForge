@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -44,18 +45,18 @@ class RolesAndPermissionsSeeder extends Seeder
             ]);
         }
 
-        $superAdmin = Role::firstOrCreate([
-            'name' => 'Super Administrator',
+        $systemAdministrator = Role::firstOrCreate([
+            'name' => 'System Administrator',
             'guard_name' => 'web',
         ]);
 
-        $ictManager = Role::firstOrCreate([
-            'name' => 'ICT Manager',
+        $itAdministrator = Role::firstOrCreate([
+            'name' => 'IT Administrator',
             'guard_name' => 'web',
         ]);
 
-        $ictOfficer = Role::firstOrCreate([
-            'name' => 'ICT Officer',
+        $assetManager = Role::firstOrCreate([
+            'name' => 'Asset Manager',
             'guard_name' => 'web',
         ]);
 
@@ -69,6 +70,12 @@ class RolesAndPermissionsSeeder extends Seeder
             'guard_name' => 'web',
         ]);
 
-        $superAdmin->syncPermissions(Permission::all());
+        $systemAdministrator->syncPermissions(Permission::all());
+
+        $admin = User::where('email', 'admin@assetforge.com')->first();
+
+        if ($admin) {
+            $admin->assignRole($systemAdministrator);
+        }
     }
 }
