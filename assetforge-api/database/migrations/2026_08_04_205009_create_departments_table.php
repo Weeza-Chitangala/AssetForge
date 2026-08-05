@@ -12,14 +12,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('departments', function (Blueprint $table) {
-            $table->id();
 
-            $table->uuid('uuid')->unique();
+            $table->uuid('id')->primary();
 
-            $table->foreignId('company_id')
-                  ->constrained()
-                  ->cascadeOnUpdate()
-                  ->restrictOnDelete();
+            $table->uuid('company_id');
+
+            $table->foreign('company_id')
+                ->references('id')
+                ->on('companies')
+                ->cascadeOnUpdate()
+                ->restrictOnDelete();
 
             $table->string('name');
             $table->string('code', 50);

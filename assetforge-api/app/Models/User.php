@@ -19,6 +19,14 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'tenant_id',
+        'organization_id',
+        'company_id',
+        'department_id',
+        'team_id',
+        'employee_number',
+        'job_title',
+        'status',
     ];
 
     protected $hidden = [
@@ -33,4 +41,32 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    // Relationships 
+
+    public function tenant()
+    {
+        return $this->belongsTo(Tenant::class);
+    }
+
+    public function organization()
+    {
+        return $this->belongsTo(Organization::class);
+    }
+
+    public function company()
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
+    }
+
+    public function organizationTeam()
+    {
+        return $this->belongsTo(Team::class, 'team_id');
+    }
+
 }

@@ -12,27 +12,29 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('teams', function (Blueprint $table) {
-            $table->id();
 
-            $table->uuid('uuid')->unique();
+            $table->uuid('id')->primary();
 
-            $table->foreignId('department_id')
-                  ->constrained()
-                  ->cascadeOnUpdate()
-                  ->restrictOnDelete();
+            $table->uuid('department_id');
+
+            $table->foreign('department_id')
+                ->references('id')
+                ->on('departments')
+                ->cascadeOnUpdate()
+                ->restrictOnDelete();
 
             $table->string('name');
             $table->string('code', 50);
 
             $table->unique(['department_id', 'name']);
+            $table->unique(['department_id', 'code']);
+
             $table->text('description')->nullable();
 
             $table->string('status')->default('active');
 
             $table->timestamps();
             $table->softDeletes();
-
-            $table->unique(['department_id', 'code']);
 
             $table->index('department_id');
             $table->index('name');

@@ -9,17 +9,20 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
+
     public function up(): void
     {
         Schema::create('organizations', function (Blueprint $table) {
-            $table->id();
 
-            $table->uuid('uuid')->unique();
+            $table->uuid('id')->primary();
 
-            $table->foreignId('tenant_id')
-                  ->constrained()
-                  ->cascadeOnUpdate()
-                  ->restrictOnDelete();
+            $table->uuid('tenant_id');
+
+            $table->foreign('tenant_id')
+                ->references('id')
+                ->on('tenants')
+                ->cascadeOnUpdate()
+                ->restrictOnDelete();
 
             $table->string('name');
             $table->string('code', 50);
