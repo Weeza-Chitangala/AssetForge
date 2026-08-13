@@ -15,6 +15,9 @@ class User extends Authenticatable
     use Notifiable;
     use HasRoles;
 
+    // Set Spatie default guard for this model to API
+    protected $guard_name = 'api';
+
     protected $fillable = [
         'name',
         'email',
