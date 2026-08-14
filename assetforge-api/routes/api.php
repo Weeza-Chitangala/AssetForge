@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\EquipmentAssetController;
+use App\Http\Controllers\Api\V1\AssetLifecycleController;
 use App\Http\Controllers\Api\V1\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -33,6 +34,12 @@ Route::prefix('v1')->group(function () {
         Route::get('assets/{asset}', [EquipmentAssetController::class, 'show'])->middleware('permission:assets.view');
         Route::put('assets/{asset}', [EquipmentAssetController::class, 'update'])->middleware('permission:assets.update');
         Route::delete('assets/{asset}', [EquipmentAssetController::class, 'destroy'])->middleware('permission:assets.delete');
+
+        // Asset Lifecycle Actions
+        Route::post('assets/{asset}/checkout', [AssetLifecycleController::class, 'checkout'])->middleware('permission:assets.update');
+        Route::post('assets/{asset}/checkin', [AssetLifecycleController::class, 'checkin'])->middleware('permission:assets.update');
+        Route::post('assets/{asset}/transfer', [AssetLifecycleController::class, 'transfer'])->middleware('permission:assets.update');
+        Route::get('assets/{asset}/history', [AssetLifecycleController::class, 'history'])->middleware('permission:assets.view');
 
         // Permission Test Route
         Route::middleware('permission:settings.manage')->get('/test-permission', function () {
