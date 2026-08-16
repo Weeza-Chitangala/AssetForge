@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\EquipmentAssetController;
 use App\Http\Controllers\Api\V1\AssetLifecycleController;
+use App\Http\Controllers\Api\V1\WarrantyController;
 use App\Http\Controllers\Api\V1\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -40,6 +41,9 @@ Route::prefix('v1')->group(function () {
         Route::post('assets/{asset}/checkin', [AssetLifecycleController::class, 'checkin'])->middleware('permission:assets.update');
         Route::post('assets/{asset}/transfer', [AssetLifecycleController::class, 'transfer'])->middleware('permission:assets.update');
         Route::get('assets/{asset}/history', [AssetLifecycleController::class, 'history'])->middleware('permission:assets.view');
+
+        // Warranty Endpoints
+        Route::apiResource('warranties', WarrantyController::class);
 
         // Permission Test Route
         Route::middleware('permission:settings.manage')->get('/test-permission', function () {
