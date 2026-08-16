@@ -5,6 +5,10 @@ use App\Http\Controllers\Api\V1\EquipmentAssetController;
 use App\Http\Controllers\Api\V1\AssetLifecycleController;
 use App\Http\Controllers\Api\V1\WarrantyController;
 use App\Http\Controllers\Api\V1\UserController;
+use App\Http\Controllers\Api\V1\AssetModelController;
+use App\Http\Controllers\Api\V1\CategoryController;
+use App\Http\Controllers\Api\V1\LocationController;
+use App\Http\Controllers\Api\V1\ManufacturerController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -44,6 +48,12 @@ Route::prefix('v1')->group(function () {
 
         // Warranty Endpoints
         Route::apiResource('warranties', WarrantyController::class);
+
+        // Reference Data Endpoints
+        Route::apiResource('categories', CategoryController::class);
+        Route::apiResource('manufacturers', ManufacturerController::class);
+        Route::apiResource('asset-models', AssetModelController::class);
+        Route::apiResource('locations', LocationController::class);
 
         // Permission Test Route
         Route::middleware('permission:settings.manage')->get('/test-permission', function () {
