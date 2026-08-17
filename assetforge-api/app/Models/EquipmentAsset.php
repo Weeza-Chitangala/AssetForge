@@ -135,4 +135,10 @@ class EquipmentAsset extends Model
     {
         return $this->hasOne(Warranty::class)->latestOfMany('end_date');
     }
+
+    // Repair Job Relationships
+    public function repairJobs(): HasMany
+    {
+        return $this->hasMany(RepairJob::class)->latest();
+    }
 }

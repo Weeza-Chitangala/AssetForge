@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\V1\AssetModelController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\LocationController;
 use App\Http\Controllers\Api\V1\ManufacturerController;
+use App\Http\Controllers\Api\V1\FaultTypeController;
+use App\Http\Controllers\Api\V1\RepairJobController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -54,6 +56,13 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('manufacturers', ManufacturerController::class);
         Route::apiResource('asset-models', AssetModelController::class);
         Route::apiResource('locations', LocationController::class);
+
+        // Fault Types Reference
+        Route::get('fault-types', [FaultTypeController::class, 'index'])->middleware('permission:assets.view');
+
+        // Repair Management
+        Route::apiResource('repairs', RepairJobController::class);
+        Route::post('repairs/{repairJob}/progress', [RepairJobController::class, 'addProgress'])->middleware('permission:assets.update');
 
         // Permission Test Route
         Route::middleware('permission:settings.manage')->get('/test-permission', function () {
