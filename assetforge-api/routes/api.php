@@ -1,18 +1,19 @@
 <?php
 
-use App\Http\Controllers\Api\V1\Auth\AuthController;
-use App\Http\Controllers\Api\V1\EquipmentAssetController;
+use App\Http\Controllers\Api\V1\AssetLabelController;
 use App\Http\Controllers\Api\V1\AssetLifecycleController;
-use App\Http\Controllers\Api\V1\WarrantyController;
-use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\AssetModelController;
+use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\CategoryController;
+use App\Http\Controllers\Api\V1\DashboardController;
+use App\Http\Controllers\Api\V1\EquipmentAssetController;
+use App\Http\Controllers\Api\V1\FaultTypeController;
+use App\Http\Controllers\Api\V1\GlobalSearchController;
 use App\Http\Controllers\Api\V1\LocationController;
 use App\Http\Controllers\Api\V1\ManufacturerController;
-use App\Http\Controllers\Api\V1\FaultTypeController;
 use App\Http\Controllers\Api\V1\RepairJobController;
-use App\Http\Controllers\Api\V1\DashboardController;
-use App\Http\Controllers\Api\V1\GlobalSearchController;
+use App\Http\Controllers\Api\V1\UserController;
+use App\Http\Controllers\Api\V1\WarrantyController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -29,7 +30,7 @@ Route::prefix('v1')->group(function () {
 
     // Authenticated API Routes
     Route::middleware('auth:sanctum')->group(function () {
-        
+
         // Search & Dashboard
         Route::get('search', [GlobalSearchController::class, 'search']);
         Route::get('dashboard/summary', [DashboardController::class, 'summary']);
@@ -47,6 +48,10 @@ Route::prefix('v1')->group(function () {
         Route::get('assets/{asset}', [EquipmentAssetController::class, 'show'])->middleware('permission:assets.view');
         Route::put('assets/{asset}', [EquipmentAssetController::class, 'update'])->middleware('permission:assets.update');
         Route::delete('assets/{asset}', [EquipmentAssetController::class, 'destroy'])->middleware('permission:assets.delete');
+
+        // Asset Label & QR Code Endpoints
+        Route::get('assets/{asset}/qr', [AssetLabelController::class, 'qrCode'])->name('assets.qr');
+        Route::get('assets/{asset}/label-data', [AssetLabelController::class, 'printPayload'])->name('assets.label-data');
 
         // Asset Lifecycle Actions
         Route::post('assets/{asset}/checkout', [AssetLifecycleController::class, 'checkout'])->middleware('permission:assets.update');
