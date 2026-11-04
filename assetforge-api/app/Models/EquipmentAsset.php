@@ -22,10 +22,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class EquipmentAsset extends Model
 {
-    use HasFactory, HasUuids, SoftDeletes, BelongsToTenant;
+    use HasFactory, HasUuids, SoftDeletes, BelongsToTenant, LogsActivity;
 
     protected $table = 'equipment_assets';
 
@@ -71,6 +73,15 @@ class EquipmentAsset extends Model
             'assigned_date' => 'datetime',
             'purchase_cost' => 'decimal:2',
         ];
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('equipment_asset')
+            ->logAll()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
     }
 
     // Organizational Relationships
@@ -141,7 +152,7 @@ class EquipmentAsset extends Model
     {
         return $this->belongsTo(User::class, 'updated_by');
     }
-    
+
     // Asset Lifecycle & Audit Trail Relationships
     public function movements(): HasMany
     {

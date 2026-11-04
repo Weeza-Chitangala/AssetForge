@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\AssetLabelController;
 use App\Http\Controllers\Api\V1\AssetLifecycleController;
 use App\Http\Controllers\Api\V1\AssetModelController;
+use App\Http\Controllers\Api\V1\AuditLogController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\DashboardController;
@@ -34,6 +35,10 @@ Route::prefix('v1')->group(function () {
         // Search & Dashboard
         Route::get('search', [GlobalSearchController::class, 'search']);
         Route::get('dashboard/summary', [DashboardController::class, 'summary']);
+
+        // Audit Logs
+        Route::get('audit-logs', [AuditLogController::class, 'index']);
+        Route::get('audit-logs/{type}/{id}', [AuditLogController::class, 'entityAudit']);
 
         // User Administration CRUD endpoints protected by Spatie permissions
         Route::get('users', [UserController::class, 'index'])->middleware('permission:users.view');
