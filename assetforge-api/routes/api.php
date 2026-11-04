@@ -11,6 +11,8 @@ use App\Http\Controllers\Api\V1\LocationController;
 use App\Http\Controllers\Api\V1\ManufacturerController;
 use App\Http\Controllers\Api\V1\FaultTypeController;
 use App\Http\Controllers\Api\V1\RepairJobController;
+use App\Http\Controllers\Api\V1\DashboardController;
+use App\Http\Controllers\Api\V1\GlobalSearchController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -28,6 +30,10 @@ Route::prefix('v1')->group(function () {
     // Authenticated API Routes
     Route::middleware('auth:sanctum')->group(function () {
         
+        // Search & Dashboard
+        Route::get('search', [GlobalSearchController::class, 'search']);
+        Route::get('dashboard/summary', [DashboardController::class, 'summary']);
+
         // User Administration CRUD endpoints protected by Spatie permissions
         Route::get('users', [UserController::class, 'index'])->middleware('permission:users.view');
         Route::post('users', [UserController::class, 'store'])->middleware('permission:users.create');

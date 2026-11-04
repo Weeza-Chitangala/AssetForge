@@ -2,6 +2,18 @@
 
 namespace App\Models;
 
+use App\Models\AssetModel;
+use App\Models\AssetMovement;
+use App\Models\AssetStatus;
+use App\Models\Category;
+use App\Models\Company;
+use App\Models\Department;
+use App\Models\Location;
+use App\Models\Manufacturer;
+use App\Models\Organization;
+use App\Models\RepairJob;
+use App\Models\User;
+use App\Models\Warranty;
 use App\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -88,9 +100,20 @@ class EquipmentAsset extends Model
         return $this->belongsTo(Manufacturer::class);
     }
 
+    /**
+     * Get the model definition for this equipment asset.
+     */
+    public function model(): BelongsTo
+    {
+        return $this->belongsTo(AssetModel::class, 'asset_model_id');
+    }
+
+    /**
+     * Standard relationship matching the asset_model_id column.
+     */
     public function assetModel(): BelongsTo
     {
-        return $this->belongsTo(AssetModel::class);
+        return $this->belongsTo(AssetModel::class, 'asset_model_id');
     }
 
     public function location(): BelongsTo

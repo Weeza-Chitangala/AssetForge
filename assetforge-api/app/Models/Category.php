@@ -25,4 +25,9 @@ class Category extends Model
     {
         return $this->hasMany(AssetModel::class);
     }
+
+    public function equipmentAssets(): HasMany
+    {
+        return $this->hasMany(EquipmentAsset::class);
+    }
 }
