@@ -11,9 +11,16 @@ use App\Models\RepairJob;
 use App\Models\Warranty;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
+use OpenApi\Attributes as OA;
 
 class DashboardController extends Controller
 {
+    #[OA\Get(
+        path: '/dashboard/summary',
+        summary: 'Retrieve dashboard analytics',
+        security: [['bearerAuth' => []]],
+        responses: [new OA\Response(response: 200, description: 'Dashboard analytics')]
+    )]
     public function summary(): JsonResponse
     {
         $today = Carbon::today();

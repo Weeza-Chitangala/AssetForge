@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AssetBatchController;
 use App\Http\Controllers\Api\V1\AssetLabelController;
 use App\Http\Controllers\Api\V1\AssetLifecycleController;
 use App\Http\Controllers\Api\V1\AssetModelController;
@@ -46,6 +47,11 @@ Route::prefix('v1')->group(function () {
         Route::get('users/{user}', [UserController::class, 'show'])->middleware('permission:users.view');
         Route::put('users/{user}', [UserController::class, 'update'])->middleware('permission:users.update');
         Route::delete('users/{user}', [UserController::class, 'destroy'])->middleware('permission:users.delete');
+
+        // Batch Asset Operations
+        // Defined before wildcard route assets/{asset} to avoid route parameter collision
+        Route::post('assets/import', [AssetBatchController::class, 'import'])->middleware('permission:assets.create');
+        Route::get('assets/export', [AssetBatchController::class, 'export'])->middleware('permission:assets.view');
 
         // Equipment Asset Resource Endpoints
         Route::get('assets', [EquipmentAssetController::class, 'index'])->middleware('permission:assets.view');

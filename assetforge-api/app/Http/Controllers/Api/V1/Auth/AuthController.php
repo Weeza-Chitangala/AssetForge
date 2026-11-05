@@ -8,6 +8,7 @@ use App\Http\Resources\UserResource;
 use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use OpenApi\Attributes as OA;
 
 class AuthController extends Controller
 {
@@ -15,6 +16,12 @@ class AuthController extends Controller
         protected AuthService $authService
     ) {}
 
+    #[OA\Post(
+        path: '/auth/login',
+        summary: 'Authenticate and issue a Sanctum token',
+        security: [],
+        responses: [new OA\Response(response: 200, description: 'Login token and user details')]
+    )]
     public function login(LoginRequest $request): JsonResponse
     {
         $result = $this->authService->login(

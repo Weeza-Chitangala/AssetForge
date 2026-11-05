@@ -1,0 +1,72 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "AssetForge Enterprise ITAM API",
+        "description": "API documentation for the AssetForge Enterprise ITAM platform.",
+        "contact": {
+            "email": "support@assetforge.com"
+        },
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8000/api/v1"
+        }
+    ],
+    "paths": {
+        "/assets/export": {
+            "get": {
+                "summary": "Export tenant assets",
+                "description": "Export all tenant assets to Excel or CSV.",
+                "operationId": "62a9cc58204fade9ba981a9bd33a7416",
+                "responses": {
+                    "200": {
+                        "description": "Asset export file"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "summary": "Authenticate and issue a Sanctum token",
+                "operationId": "e5e32c5c121d50e864abf0f704b71593",
+                "responses": {
+                    "200": {
+                        "description": "Login token and user details"
+                    }
+                },
+                "security": []
+            }
+        },
+        "/dashboard/summary": {
+            "get": {
+                "summary": "Retrieve dashboard analytics",
+                "operationId": "df38ca995b07a2800ce6752d3226582e",
+                "responses": {
+                    "200": {
+                        "description": "Dashboard analytics"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "bearerFormat": "Sanctum",
+                "scheme": "bearer"
+            }
+        }
+    }
+}
