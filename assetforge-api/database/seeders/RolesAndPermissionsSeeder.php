@@ -6,76 +6,84 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class RolesAndPermissionsSeeder extends Seeder
 {
     public function run(): void
     {
-        app()[\Spatie\Permission\PermissionRegistrar::class]
-            ->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+
+        $guard = 'api';
 
         $permissions = [
-
             'dashboard.view',
-
             'users.view',
             'users.create',
             'users.update',
             'users.delete',
-
             'assets.view',
             'assets.create',
             'assets.update',
             'assets.delete',
-
             'repairs.view',
             'repairs.create',
             'repairs.update',
             'repairs.delete',
-
             'reports.view',
-
             'settings.manage',
         ];
 
         foreach ($permissions as $permission) {
             Permission::firstOrCreate([
                 'name' => $permission,
-                'guard_name' => 'web',
+                'guard_name' => $guard,
             ]);
         }
 
-        $systemAdministrator = Role::firstOrCreate([
-            'name' => 'System Administrator',
-            'guard_name' => 'web',
-        ]);
+        $rolePermissions = [
+            'Super Administrator' => $permissions,
+            'IT Administrator' => $permissions,
+            'Asset Manager' => [
+                'dashboard.view',
+                'users.view',
+                'assets.view',
+                'assets.create',
+                'assets.update',
+                'assets.delete',
+                'repairs.view',
+                'repairs.create',
+                'repairs.update',
+                'reports.view',
+            ],
+            'Technician' => [
+                'dashboard.view',
+                'assets.view',
+                'assets.update',
+                'repairs.view',
+                'repairs.create',
+                'repairs.update',
+            ],
+            'Auditor' => [
+                'dashboard.view',
+                'users.view',
+                'assets.view',
+                'repairs.view',
+                'reports.view',
+            ],
+        ];
 
-        $itAdministrator = Role::firstOrCreate([
-            'name' => 'IT Administrator',
-            'guard_name' => 'web',
-        ]);
-
-        $assetManager = Role::firstOrCreate([
-            'name' => 'Asset Manager',
-            'guard_name' => 'web',
-        ]);
-
-        $technician = Role::firstOrCreate([
-            'name' => 'Technician',
-            'guard_name' => 'web',
-        ]);
-
-        $auditor = Role::firstOrCreate([
-            'name' => 'Auditor',
-            'guard_name' => 'web',
-        ]);
-
-        $systemAdministrator->syncPermissions(Permission::all());
+        foreach ($rolePermissions as $roleName => $assignedPermissions) {
+            $role = Role::firstOrCreate([
+                'name' => $roleName,
+                'guard_name' => $guard,
+            ]);
+            $role->syncPermissions($assignedPermissions);
+        }
 
         $admin = User::where('email', 'admin@assetforge.com')->first();
-
-        if ($admin) {
-            $admin->assignRole($systemAdministrator);
+        if ($admin && !$admin->hasRole('Super Administrator')) {
+            $admin->assignRole('Super Administrator');
         }
     }
 }

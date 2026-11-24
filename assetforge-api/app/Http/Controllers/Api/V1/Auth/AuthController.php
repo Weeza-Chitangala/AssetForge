@@ -29,12 +29,14 @@ class AuthController extends Controller
             $request->password
         );
 
+        $user = $result['user']->load(['tenant', 'organization', 'company', 'department', 'team', 'roles', 'permissions']);
+
         return response()->json([
             'success' => true,
             'message' => 'Login successful.',
             'data' => [
                 'token' => $result['token'],
-                'user' => new UserResource($result['user']),
+                'user' => new UserResource($user),
             ],
         ]);
     }
@@ -51,9 +53,11 @@ class AuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
+        $user = $request->user()->load(['tenant', 'organization', 'company', 'department', 'team', 'roles', 'permissions']);
+
         return response()->json([
             'success' => true,
-            'data' => new UserResource($request->user()),
+            'data' => new UserResource($user),
         ]);
     }
 }

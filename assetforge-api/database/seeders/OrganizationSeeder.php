@@ -13,28 +13,26 @@ class OrganizationSeeder extends Seeder
 {
     public function run(): void
     {
-        $tenant = Tenant::create([
-            'name'   => 'AssetForge Demo Tenant',
-            'slug'   => 'assetforge-demo',
-            'email'  => 'demo@assetforge.local',
-            'phone'  => '+260000000000',
-            'website'=> 'https://assetforge.local',
-            'status' => 'active',
-        ]);
+        $tenant = Tenant::firstOrCreate(
+            ['slug' => 'assetforge-demo'],
+            [
+                'name' => 'AssetForge Demo Tenant',
+                'email' => 'demo@assetforge.local',
+                'phone' => '+260000000000',
+                'website' => 'https://assetforge.local',
+                'status' => 'active',
+            ]
+        );
 
-        $organization = Organization::create([
-            'tenant_id' => $tenant->id,
-            'name' => 'Motus Africa',
-            'code' => 'MAF',
-            'status' => 'active',
-        ]);
+        $organization = Organization::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'name' => 'Motus Africa'],
+            ['code' => 'MAF', 'status' => 'active']
+        );
 
-        $company = Company::create([
-            'organization_id' => $organization->id,
-            'name' => 'Motus Zambia',
-            'code' => 'MZA',
-            'status' => 'active',
-        ]);
+        $company = Company::firstOrCreate(
+            ['organization_id' => $organization->id, 'name' => 'Motus Zambia'],
+            ['code' => 'MZA', 'status' => 'active']
+        );
 
         $departments = [
             'IT',
@@ -43,28 +41,23 @@ class OrganizationSeeder extends Seeder
         ];
 
         foreach ($departments as $departmentName) {
-
-            $department = Department::create([
-                'company_id' => $company->id,
-                'name' => $departmentName,
-                'code' => strtoupper(substr($departmentName, 0, 3)),
-                'status' => 'active',
-            ]);
+            $department = Department::firstOrCreate(
+                ['company_id' => $company->id, 'name' => $departmentName],
+                [
+                    'code' => strtoupper(substr($departmentName, 0, 3)),
+                    'status' => 'active',
+                ]
+            );
 
             if ($departmentName === 'IT') {
-
-                foreach ([
-                    'Infrastructure',
-                    'Development',
-                    'Helpdesk',
-                ] as $teamName) {
-
-                    Team::create([
-                        'department_id' => $department->id,
-                        'name' => $teamName,
-                        'code' => strtoupper(substr($teamName, 0, 3)),
-                        'status' => 'active',
-                    ]);
+                foreach (['Infrastructure', 'Development', 'Helpdesk'] as $teamName) {
+                    Team::firstOrCreate(
+                        ['department_id' => $department->id, 'name' => $teamName],
+                        [
+                            'code' => strtoupper(substr($teamName, 0, 3)),
+                            'status' => 'active',
+                        ]
+                    );
                 }
             }
         }

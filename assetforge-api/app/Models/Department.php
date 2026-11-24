@@ -3,41 +3,38 @@
 namespace App\Models;
 
 use App\Traits\HasUuid;
-use App\Models\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Department extends Model
 {
     use HasUuid, SoftDeletes;
 
-
     protected $fillable = [
         'company_id',
         'name',
         'code',
+        'description',
         'status',
     ];
-
 
     protected $casts = [
         'status' => 'string',
     ];
 
-
-    public function company()
+    public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
     }
 
-
-    public function teams()
+    public function teams(): HasMany
     {
         return $this->hasMany(Team::class);
     }
 
-    public function users()
+    public function users(): HasMany
     {
         return $this->hasMany(User::class);
     }

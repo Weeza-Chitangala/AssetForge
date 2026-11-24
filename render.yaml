@@ -1,0 +1,90 @@
+databases:
+  - name: assetforge-db
+    databaseName: assetforge
+    user: assetforge_user
+    postgresMajorVersion: "17"
+    plan: basic-256mb
+    region: oregon
+
+services:
+  - type: web
+    name: assetforge-api
+    runtime: docker
+    rootDir: assetforge-api
+    dockerfilePath: ./Dockerfile
+    branch: main
+    region: oregon
+    plan: starter
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: APP_NAME
+        value: AssetForge
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        generateValue: true
+      - key: APP_URL
+        value: https://assetforge-api.onrender.com
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: LOG_LEVEL
+        value: info
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        fromDatabase:
+          name: assetforge-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: assetforge-db
+          property: port
+      - key: DB_DATABASE
+        fromDatabase:
+          name: assetforge-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: assetforge-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: assetforge-db
+          property: password
+      - key: DB_SSLMODE
+        value: require
+      - key: SESSION_DRIVER
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: SANCTUM_TOKEN_EXPIRATION
+        value: "1440"
+      - key: FRONTEND_URL
+        value: https://assetforge-web.onrender.com
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://assetforge-web.onrender.com
+      - key: CORS_SUPPORTS_CREDENTIALS
+        value: "false"
+      - key: SANCTUM_STATEFUL_DOMAINS
+        value: assetforge-web.onrender.com
+
+  - type: web
+    name: assetforge-web
+    runtime: static
+    rootDir: assetforge-web
+    branch: main
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://assetforge-api.onrender.com/api/v1
+      - key: VITE_APP_NAME
+        value: AssetForge

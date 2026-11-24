@@ -37,6 +37,7 @@ class UserResource extends JsonResource
                 'name' => $this->whenLoaded('team', fn() => $this->team?->name),
             ],
             'roles' => $this->whenLoaded('roles', fn() => $this->roles->pluck('name')),
+            'permissions' => $this->whenLoaded('roles', fn() => $this->getAllPermissions()->pluck('name')->values()),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
