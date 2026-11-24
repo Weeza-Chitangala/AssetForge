@@ -20,6 +20,16 @@ class AuthService
 
         $token = $user->createToken('assetforge-token')->plainTextToken;
 
+        activity('auth')
+            ->causedBy($user)
+            ->event('login')
+            ->withProperties([
+                'tenant_id' => $user->tenant_id,
+                'ip' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ])
+            ->log('User logged in');
+
         return [
             'user' => $user,
             'token' => $token,
@@ -28,6 +38,16 @@ class AuthService
 
     public function logout(User $user): void
     {
+        activity('auth')
+            ->causedBy($user)
+            ->event('logout')
+            ->withProperties([
+                'tenant_id' => $user->tenant_id,
+                'ip' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ])
+            ->log('User logged out');
+
         $user->currentAccessToken()?->delete();
     }
 }

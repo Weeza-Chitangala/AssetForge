@@ -11,15 +11,49 @@ use App\Models\RepairJob;
 use App\Models\Warranty;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
-use OpenApi\Attributes as OA;
+use OpenApi\Annotations as OA;
+use OpenApi\Attributes as OAAttributes;
 
+/**
+ * @OA\Info(
+ *      version="1.0.0",
+ *      title="AssetForge Enterprise ITAM API",
+ *      description="Multi-tenant IT Asset Management System REST API documentation",
+ *      @OA\Contact(email="support@assetforge.com")
+ * )
+ *
+ * @OA\Server(
+ *      url="http://localhost:8000/api/v1",
+ *      description="Local Development API Server"
+ * )
+ *
+ * @OA\SecurityScheme(
+ *      securityScheme="bearerAuth",
+ *      type="http",
+ *      scheme="bearer",
+ *      bearerFormat="Sanctum"
+ * )
+ */
+#[OAAttributes\Info(
+    title: 'AssetForge Enterprise ITAM API',
+    version: '1.0.0',
+    description: 'Multi-tenant IT Asset Management System REST API documentation',
+    contact: new OAAttributes\Contact(email: 'support@assetforge.com')
+)]
+#[OAAttributes\Server(url: 'http://localhost:8000/api/v1', description: 'Local Development API Server')]
+#[OAAttributes\SecurityScheme(
+    securityScheme: 'bearerAuth',
+    type: 'http',
+    scheme: 'bearer',
+    bearerFormat: 'Sanctum'
+)]
 class DashboardController extends Controller
 {
-    #[OA\Get(
+    #[OAAttributes\Get(
         path: '/dashboard/summary',
         summary: 'Retrieve dashboard analytics',
         security: [['bearerAuth' => []]],
-        responses: [new OA\Response(response: 200, description: 'Dashboard analytics')]
+        responses: [new OAAttributes\Response(response: 200, description: 'Dashboard analytics')]
     )]
     public function summary(): JsonResponse
     {

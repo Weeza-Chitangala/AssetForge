@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\IdentifyTenant;
+use App\Http\Middleware\SecurityHeadersMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -25,9 +26,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => RoleMiddleware::class,
         ]);
 
-        // Append tenant identification middleware to API routes
-        $middleware->api(append: [
+        // Prepend tenant identification before SubstituteBindings so route-model binding enforces TenantScope
+        $middleware->api(prepend: [
             IdentifyTenant::class,
+            SecurityHeadersMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

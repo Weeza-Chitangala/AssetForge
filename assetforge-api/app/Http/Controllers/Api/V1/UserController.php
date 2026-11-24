@@ -18,7 +18,8 @@ class UserController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = User::with(['tenant', 'organization', 'company', 'department', 'team', 'roles']);
+        $query = User::with(['tenant', 'organization', 'company', 'department', 'team', 'roles'])
+            ->where('tenant_id', $request->user()?->tenant_id);
 
         // Search filter (name, email, employee_number)
         if ($request->filled('search')) {
@@ -84,8 +85,9 @@ class UserController extends Controller
     /**
      * Display the specified user.
      */
-    public function show(User $user): JsonResponse
+    public function show(Request $request, User $user): JsonResponse
     {
+        abort_if($user->tenant_id !== $request->user()?->tenant_id, 404, 'User not found.');
         $user->load(['tenant', 'organization', 'company', 'department', 'team', 'roles']);
 
         return response()->json([
@@ -100,6 +102,7 @@ class UserController extends Controller
      */
     public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
+        abort_if($user->tenant_id !== $request->user()?->tenant_id, 404, 'User not found.');
         $data = $request->validated();
 
         if (!empty($data['password'])) {
@@ -126,8 +129,9 @@ class UserController extends Controller
     /**
      * Remove the specified user.
      */
-    public function destroy(User $user): JsonResponse
+    public function destroy(Request $request, User $user): JsonResponse
     {
+        abort_if($user->tenant_id !== $request->user()?->tenant_id, 404, 'User not found.');
         $user->delete();
 
         return response()->json([

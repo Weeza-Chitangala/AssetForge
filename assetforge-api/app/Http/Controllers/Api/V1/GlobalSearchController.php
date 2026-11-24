@@ -96,8 +96,10 @@ class GlobalSearchController extends Controller
                 'end_date'  => $warranty->end_date?->format('Y-m-d'),
             ]);
 
-        // 4. Users Search
-        $users = User::where(function ($query) use ($term) {
+        // 4. Users Search (strictly scoped to current tenant)
+        $tenantId = $request->user()?->tenant_id;
+        $users = User::where('tenant_id', $tenantId)
+            ->where(function ($query) use ($term) {
                 $query->where('name', 'ILIKE', "%{$term}%")
                     ->orWhere('email', 'ILIKE', "%{$term}%")
                     ->orWhere('employee_number', 'ILIKE', "%{$term}%")

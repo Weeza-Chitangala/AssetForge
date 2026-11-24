@@ -10,19 +10,14 @@ class IdentifyTenant
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $tenantId = null;
+        // Always resolve the authenticated user (including Bearer token before route auth middleware runs)
+        $user = $request->user() ?? $request->user('sanctum');
 
-        // 1. Resolve from Authenticated User
-        if ($request->user() && $request->user()->tenant_id) {
-            $tenantId = $request->user()->tenant_id;
-        } 
-        // 2. Fallback to HTTP Header
-        elseif ($request->hasHeader('X-Tenant-ID')) {
-            $tenantId = $request->header('X-Tenant-ID');
-        }
-
-        if ($tenantId) {
-            app()->instance('current_tenant_id', $tenantId);
+        if ($user && $user->tenant_id) {
+            // Never allow X-Tenant-ID header to override an authenticated user's tenant
+            app()->instance('current_tenant_id', $user->tenant_id);
+        } else {
+            app()->forgetInstance('current_tenant_id');
         }
 
         return $next($request);
