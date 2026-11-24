@@ -1,0 +1,17 @@
+| Role                | Permission             | Resource   | Action  | Description                           | Access Level | Notes                   |
+| ------------------- | ---------------------- | ---------- | ------- | ------------------------------------- | ------------ | ----------------------- |
+| Super Administrator | MANAGE_USERS           | Users      | CRUD    | Create, view, update and delete users | Full CRUD    | Highest access          |
+| Super Administrator | MANAGE_ROLES           | Roles      | CRUD    | Manage roles and permissions          | Full CRUD    | Security administration |
+| Super Administrator | VIEW_AUDIT_LOGS        | Audit Logs | Read    | View system security activity         | Read         |                         |
+| Administrator       | VIEW_ASSET             | Assets     | Read    | View all asset records                | Read         |                         |
+| Administrator       | CREATE_ASSET           | Assets     | Create  | Register new assets                   | Create       |                         |
+| Administrator       | UPDATE_ASSET           | Assets     | Update  | Modify asset details                  | Update       |                         |
+| Administrator       | DELETE_ASSET           | Assets     | Delete  | Remove asset records                  | Delete       |                         |
+| Inventory Manager   | VIEW_ASSET             | Assets     | Read    | View inventory records                | Read         |                         |
+| Inventory Manager   | CREATE_ASSET           | Assets     | Create  | Add new inventory items               | Create       |                         |
+| Inventory Manager   | UPDATE_ASSET           | Assets     | Update  | Maintain asset information            | Update       |                         |
+| Inventory Manager   | ASSIGN_ASSET           | Assets     | Update  | Assign assets to users/departments    | Update       |                         |
+| Inventory Manager   | VIEW_REPORTS           | Reports    | Read    | View inventory reports                | Read         |                         |
+| Department Manager  | VIEW_DEPARTMENT_ASSETS | Assets     | Read    | View department assets                | Read         | Limited scope           |
+| Department Manager  | APPROVE_ASSIGNMENT     | Assets     | Approve | Approve asset assignments             | Approve      |                         |
+| Standard User       | VIEW_ASSIGNED_ASSET    | Assets     | Read    | View assigned equipment               | Read         | Own assets only         |
