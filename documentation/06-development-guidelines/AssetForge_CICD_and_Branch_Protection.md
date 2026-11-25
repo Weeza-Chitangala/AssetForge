@@ -37,9 +37,9 @@ Runs on pushes to `dev`, `main`, `feature/**`, `bugfix/**`, `hotfix/**` and on P
    - `npx tsc -b` (strict TypeScript build check)
    - `npm run build` (Vite production bundle)
 3. **`security-audit`:**
-   - Runs `composer audit --no-interaction --locked` and `npm audit --audit-level=high` (`continue-on-error: true` so advisories are surfaced transparently in CI logs for tracking).
+   - Runs `composer audit --no-interaction --locked` and `npm audit --audit-level=high` (blocking — failures fail `CI Gate`).
 4. **`ci-gate` (`CI Gate`):**
-   - Aggregated required status check requiring both `backend-ci` and `frontend-ci` to succeed.
+   - Aggregated required status check requiring `backend-ci`, `frontend-ci`, and `security-audit` to succeed.
 
 ### B. `.github/workflows/production-release-check.yml` (`AssetForge Production Release Check`)
 Runs on PRs targeting `main` and pushes to `main`:
