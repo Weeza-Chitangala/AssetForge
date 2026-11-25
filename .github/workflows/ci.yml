@@ -1,0 +1,173 @@
+name: AssetForge CI
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+      - 'feature/**'
+      - 'bugfix/**'
+      - 'hotfix/**'
+  pull_request:
+    branches:
+      - dev
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-ci:
+    name: Backend CI (Laravel 13 + PostgreSQL 17)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: assetforge_test
+          POSTGRES_USER: assetforge_user
+          POSTGRES_PASSWORD: assetforge_test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U assetforge_user -d assetforge_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_pgsql, pgsql, pdo_sqlite, sqlite3, mbstring, xml, gd, zip, bcmath, intl, curl
+          coverage: none
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        working-directory: assetforge-api
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer download archive
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-cache-${{ hashFiles('assetforge-api/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-cache-
+
+      - name: Validate composer.json
+        working-directory: assetforge-api
+        run: composer validate --strict --no-check-publish
+
+      - name: Install Composer dependencies
+        working-directory: assetforge-api
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Prepare CI environment file
+        working-directory: assetforge-api
+        run: |
+          cp .env.example .env
+          php artisan key:generate --ansi
+
+      - name: Verify PostgreSQL 17 migrations & RBAC seeder
+        working-directory: assetforge-api
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: assetforge_test
+          DB_USERNAME: assetforge_user
+          DB_PASSWORD: assetforge_test_password
+          DB_SSLMODE: prefer
+        run: |
+          php artisan migrate --force --ansi
+          php artisan db:seed --class=RolesAndPermissionsSeeder --force --ansi
+
+      - name: Run PHPUnit test suite
+        working-directory: assetforge-api
+        run: ./vendor/bin/phpunit --testdox
+
+  frontend-ci:
+    name: Frontend CI (React 19 + TypeScript + Vite)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: assetforge-web
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: assetforge-web/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run TypeScript type check
+        run: npx tsc -b
+
+      - name: Build production bundle
+        env:
+          VITE_API_BASE_URL: https://api.example.com/api/v1
+          VITE_APP_NAME: AssetForge
+        run: npm run build
+
+  security-audit:
+    name: Dependency Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: assetforge-web/package-lock.json
+
+      - name: Composer Security Audit
+        working-directory: assetforge-api
+        continue-on-error: true
+        run: composer audit --no-interaction --locked
+
+      - name: NPM Security Audit (high+)
+        working-directory: assetforge-web
+        continue-on-error: true
+        run: npm audit --audit-level=high
+
+  ci-gate:
+    name: CI Gate
+    runs-on: ubuntu-latest
+    needs: [backend-ci, frontend-ci]
+    if: always()
+    steps:
+      - name: Evaluate required CI jobs
+        run: |
+          if [[ "${{ needs.backend-ci.result }}" != "success" || "${{ needs.frontend-ci.result }}" != "success" ]]; then
+            echo "Required CI checks failed: backend=${{ needs.backend-ci.result }}, frontend=${{ needs.frontend-ci.result }}"
+            exit 1
+          fi
+          echo "All required CI checks passed."
