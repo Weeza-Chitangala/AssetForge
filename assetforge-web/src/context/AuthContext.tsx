@@ -1,20 +1,7 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import api from '../services/api';
 import type { User } from '../types';
-
-interface AuthContextValue {
-  user: User | null;
-  token: string | null;
-  loading: boolean;
-  isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  refreshUser: () => Promise<void>;
-  hasRole: (role: string) => boolean;
-  hasPermission: (permission: string) => boolean;
-}
-
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+import { AuthContext } from './useAuth';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('assetforge_token'));
@@ -47,12 +34,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [clearAuth]);
 
   useEffect(() => {
-    if (token) {
-      refreshUser();
-    } else {
-      setLoading(false);
+    if (!token || user) {
+      return;
     }
-  }, [token, refreshUser]);
+
+    let cancelled = false;
+
+    api
+      .get('/auth/me')
+      .then((response) => {
+        if (cancelled) return;
+        setUser(response.data.data);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        localStorage.removeItem('assetforge_token');
+        setToken(null);
+        setUser(null);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, user]);
 
   useEffect(() => {
     const handleUnauthorized = () => clearAuth();
@@ -66,6 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('assetforge_token', newToken);
     setToken(newToken);
     setUser(loggedInUser);
+    setLoading(false);
   };
 
   const logout = async () => {
@@ -113,11 +123,3 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     </AuthContext.Provider>
   );
 };
-
-export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return ctx;
-}

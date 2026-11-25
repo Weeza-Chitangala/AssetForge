@@ -12,7 +12,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import api, { downloadBlob } from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { DataTable } from '../components/ui/DataTable';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -60,26 +60,27 @@ export const AssetsPage: React.FC = () => {
   const [importOpen, setImportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
 
-  const loadReferenceData = useCallback(async () => {
-    try {
-      const [catRes, manRes, modRes, locRes, statRes, depRes] = await Promise.allSettled([
-        api.get('/categories'),
-        api.get('/manufacturers'),
-        api.get('/asset-models'),
-        api.get('/locations'),
-        api.get('/asset-statuses'),
-        api.get('/departments'),
-      ]);
-
+  useEffect(() => {
+    let active = true;
+    Promise.allSettled([
+      api.get('/categories'),
+      api.get('/manufacturers'),
+      api.get('/asset-models'),
+      api.get('/locations'),
+      api.get('/asset-statuses'),
+      api.get('/departments'),
+    ]).then(([catRes, manRes, modRes, locRes, statRes, depRes]) => {
+      if (!active) return;
       if (catRes.status === 'fulfilled') setCategories(catRes.value.data.data || []);
       if (manRes.status === 'fulfilled') setManufacturers(manRes.value.data.data || []);
       if (modRes.status === 'fulfilled') setModels(modRes.value.data.data || []);
       if (locRes.status === 'fulfilled') setLocations(locRes.value.data.data || []);
       if (statRes.status === 'fulfilled') setStatuses(statRes.value.data.data || []);
       if (depRes.status === 'fulfilled') setDepartments(depRes.value.data.data || []);
-    } catch {
-      // Non-blocking reference fetch
-    }
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   const fetchAssets = useCallback(async () => {
@@ -105,21 +106,20 @@ export const AssetsPage: React.FC = () => {
   }, [page, search, categoryId, manufacturerId, statusId, locationId]);
 
   useEffect(() => {
-    loadReferenceData();
-  }, [loadReferenceData]);
-
-  useEffect(() => {
     const timer = setTimeout(() => {
       fetchAssets();
     }, 200);
     return () => clearTimeout(timer);
   }, [fetchAssets]);
 
-  const handleDelete = async (asset: EquipmentAsset) => {
-    if (!window.confirm(`Delete asset ${asset.asset_tag}? This performs a soft delete.`)) return;
-    await api.delete(`/assets/${asset.id}`);
-    fetchAssets();
-  };
+  const handleDelete = useCallback(
+    async (asset: EquipmentAsset) => {
+      if (!window.confirm(`Delete asset ${asset.asset_tag}? This performs a soft delete.`)) return;
+      await api.delete(`/assets/${asset.id}`);
+      fetchAssets();
+    },
+    [fetchAssets]
+  );
 
   const handleExport = async (format: 'xlsx' | 'csv') => {
     setExporting(true);
@@ -251,7 +251,7 @@ export const AssetsPage: React.FC = () => {
         ),
       },
     ],
-    [hasPermission]
+    [handleDelete, hasPermission]
   );
 
   return (
@@ -375,6 +375,7 @@ export const AssetsPage: React.FC = () => {
       />
 
       <AssetFormModal
+        key={`${editingAsset?.id ?? 'new'}-${formOpen}`}
         open={formOpen}
         onClose={() => setFormOpen(false)}
         asset={editingAsset}

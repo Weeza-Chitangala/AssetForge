@@ -74,8 +74,21 @@ export const SettingsPage: React.FC = () => {
   }, [activeTab, search]);
 
   useEffect(() => {
-    loadLookups();
-  }, [loadLookups]);
+    let active = true;
+    Promise.allSettled([
+      api.get('/categories'),
+      api.get('/manufacturers'),
+      api.get('/companies'),
+    ]).then(([catRes, manRes, compRes]) => {
+      if (!active) return;
+      if (catRes.status === 'fulfilled') setCategories(catRes.value.data.data || []);
+      if (manRes.status === 'fulfilled') setManufacturers(manRes.value.data.data || []);
+      if (compRes.status === 'fulfilled') setCompanies(compRes.value.data.data || []);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => fetchItems(), 200);
@@ -165,12 +178,15 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (item: AnyRecord) => {
-    if (!window.confirm(`Delete "${item.name}"?`)) return;
-    await api.delete(`/${activeTab}/${item.id}`);
-    fetchItems();
-    loadLookups();
-  };
+  const handleDelete = useCallback(
+    async (item: AnyRecord) => {
+      if (!window.confirm(`Delete "${item.name}"?`)) return;
+      await api.delete(`/${activeTab}/${item.id}`);
+      fetchItems();
+      loadLookups();
+    },
+    [activeTab, fetchItems, loadLookups]
+  );
 
   const columns = useMemo<ColumnDef<AnyRecord, unknown>[]>(() => {
     const base: ColumnDef<AnyRecord, unknown>[] = [
@@ -257,7 +273,7 @@ export const SettingsPage: React.FC = () => {
     );
 
     return base;
-  }, [activeTab]);
+  }, [activeTab, handleDelete]);
 
   return (
     <div className="space-y-6">

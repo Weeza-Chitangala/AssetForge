@@ -11,7 +11,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import api from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { DataTable } from '../components/ui/DataTable';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -51,27 +51,36 @@ export const WarrantiesPage: React.FC = () => {
     terms_and_conditions: '',
   });
 
-  const fetchWarranties = useCallback(async () => {
+  const [reloadTick, setReloadTick] = useState(0);
+
+  const reloadWarranties = useCallback(() => {
     setLoading(true);
-    try {
-      const res = await api.get('/warranties', {
+    setReloadTick((t) => t + 1);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    api
+      .get('/warranties', {
         params: {
           page,
           per_page: 15,
           status: statusFilter || undefined,
         },
+      })
+      .then((res) => {
+        if (!active) return;
+        const payload = res.data.data;
+        setWarranties(payload.data || []);
+        setMeta(payload.meta || { current_page: 1, last_page: 1, per_page: 15, total: 0 });
+      })
+      .finally(() => {
+        if (active) setLoading(false);
       });
-      const payload = res.data.data;
-      setWarranties(payload.data || []);
-      setMeta(payload.meta || { current_page: 1, last_page: 1, per_page: 15, total: 0 });
-    } finally {
-      setLoading(false);
-    }
-  }, [page, statusFilter]);
-
-  useEffect(() => {
-    fetchWarranties();
-  }, [fetchWarranties]);
+    return () => {
+      active = false;
+    };
+  }, [page, statusFilter, reloadTick]);
 
   useEffect(() => {
     api.get('/assets', { params: { per_page: 100 } }).then((res) => {
@@ -130,7 +139,7 @@ export const WarrantiesPage: React.FC = () => {
         await api.post('/warranties', payload);
       }
       setModalOpen(false);
-      fetchWarranties();
+      reloadWarranties();
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
       setError(axiosErr.response?.data?.message || 'Failed to save warranty.');
@@ -139,11 +148,14 @@ export const WarrantiesPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (w: Warranty) => {
-    if (!window.confirm(`Delete warranty policy ${w.policy_number || w.provider_name}?`)) return;
-    await api.delete(`/warranties/${w.id}`);
-    fetchWarranties();
-  };
+  const handleDelete = useCallback(
+    async (w: Warranty) => {
+      if (!window.confirm(`Delete warranty policy ${w.policy_number || w.provider_name}?`)) return;
+      await api.delete(`/warranties/${w.id}`);
+      reloadWarranties();
+    },
+    [reloadWarranties]
+  );
 
   const copySerial = (id: string, serial?: string | null) => {
     if (!serial) return;
@@ -267,7 +279,7 @@ export const WarrantiesPage: React.FC = () => {
         ),
       },
     ],
-    [copiedId, hasPermission]
+    [copiedId, handleDelete, hasPermission]
   );
 
   const filterTabs = [
