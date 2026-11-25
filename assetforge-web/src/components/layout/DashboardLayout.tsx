@@ -16,7 +16,7 @@ import {
   User as UserIcon,
   Loader2,
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 import api from '../../services/api';
 import { cn } from '../../lib/utils';
 import type { GlobalSearchResponse } from '../../types';
@@ -64,26 +64,42 @@ export const DashboardLayout: React.FC = () => {
   useEffect(() => {
     const q = searchTerm.trim();
     if (q.length < 2) {
-      setSearchResults(null);
-      setSearching(false);
       return;
     }
 
+    let cancelled = false;
     const timer = setTimeout(async () => {
       setSearching(true);
       try {
         const res = await api.get('/search', { params: { q } });
+        if (cancelled) return;
         setSearchResults(res.data.data);
         setSearchOpen(true);
       } catch {
-        setSearchResults(null);
+        if (!cancelled) {
+          setSearchResults(null);
+        }
       } finally {
-        setSearching(false);
+        if (!cancelled) {
+          setSearching(false);
+        }
       }
     }, 300);
 
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [searchTerm]);
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    if (value.trim().length < 2) {
+      setSearchResults(null);
+      setSearching(false);
+      setSearchOpen(false);
+    }
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -187,7 +203,7 @@ export const DashboardLayout: React.FC = () => {
                 type="text"
                 value={searchTerm}
                 onFocus={() => searchResults && setSearchOpen(true)}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder="Global search: asset tag, serial, repair job, user..."
                 className="w-full pl-9 pr-8 py-2 text-sm rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
               />

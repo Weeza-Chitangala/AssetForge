@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -13,7 +13,7 @@ import {
   Shield,
 } from 'lucide-react';
 import api from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -63,46 +63,56 @@ export const AssetDetailPage: React.FC = () => {
     notes: '',
   });
 
-  const loadAll = useCallback(async () => {
-    if (!id) return;
+  const [reloadTick, setReloadTick] = useState(0);
+
+  const triggerReload = () => {
     setLoading(true);
     setError(null);
-
-    try {
-      const [assetRes, historyRes, labelRes, qrRes, auditRes] = await Promise.allSettled([
-        api.get(`/assets/${id}`),
-        api.get(`/assets/${id}/history`),
-        api.get(`/assets/${id}/label-data`),
-        api.get(`/assets/${id}/qr`, { responseType: 'text' }),
-        api.get(`/audit-logs/EquipmentAsset/${id}`),
-      ]);
-
-      if (assetRes.status === 'fulfilled') {
-        setAsset(assetRes.value.data.data);
-      } else {
-        setError('Unable to load equipment asset.');
-      }
-
-      if (historyRes.status === 'fulfilled') {
-        setMovements(historyRes.value.data.data?.data || []);
-      }
-      if (labelRes.status === 'fulfilled') {
-        setLabelData(labelRes.value.data.data);
-      }
-      if (qrRes.status === 'fulfilled') {
-        setQrSvg(qrRes.value.data);
-      }
-      if (auditRes.status === 'fulfilled') {
-        setAuditLogs(auditRes.value.data.data || []);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
+    setReloadTick((t) => t + 1);
+  };
 
   useEffect(() => {
-    loadAll();
-  }, [loadAll]);
+    if (!id) return;
+    let active = true;
+
+    Promise.allSettled([
+      api.get(`/assets/${id}`),
+      api.get(`/assets/${id}/history`),
+      api.get(`/assets/${id}/label-data`),
+      api.get(`/assets/${id}/qr`, { responseType: 'text' }),
+      api.get(`/audit-logs/EquipmentAsset/${id}`),
+    ])
+      .then(([assetRes, historyRes, labelRes, qrRes, auditRes]) => {
+        if (!active) return;
+
+        if (assetRes.status === 'fulfilled') {
+          setAsset(assetRes.value.data.data);
+          setError(null);
+        } else {
+          setError('Unable to load equipment asset.');
+        }
+
+        if (historyRes.status === 'fulfilled') {
+          setMovements(historyRes.value.data.data?.data || []);
+        }
+        if (labelRes.status === 'fulfilled') {
+          setLabelData(labelRes.value.data.data);
+        }
+        if (qrRes.status === 'fulfilled') {
+          setQrSvg(qrRes.value.data);
+        }
+        if (auditRes.status === 'fulfilled') {
+          setAuditLogs(auditRes.value.data.data || []);
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [id, reloadTick]);
 
   useEffect(() => {
     Promise.allSettled([
@@ -142,7 +152,7 @@ export const AssetDetailPage: React.FC = () => {
     try {
       await api.post(`/assets/${id}/${actionType}`, payload);
       setActionType(null);
-      loadAll();
+      triggerReload();
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
       setActionErr(axiosErr.response?.data?.message || 'Lifecycle action failed.');

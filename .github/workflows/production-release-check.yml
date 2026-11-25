@@ -1,0 +1,37 @@
+name: AssetForge Production Release Check
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-validation:
+    name: Render & Docker Release Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate YAML configurations (render.yaml & workflows)
+        run: |
+          ruby -ryaml -e "
+            ['render.yaml', '.github/workflows/ci.yml', '.github/workflows/production-release-check.yml'].each do |file|
+              YAML.safe_load(File.read(file), aliases: true)
+              puts \"YAML valid: #{file}\"
+            end
+          "
+
+      - name: Validate Docker start script syntax
+        run: bash -n assetforge-api/docker/start.sh
+
+      - name: Verify production Docker image build
+        run: docker build --file assetforge-api/Dockerfile -t assetforge-api:release-check assetforge-api

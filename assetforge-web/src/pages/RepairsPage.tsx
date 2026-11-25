@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { type ColumnDef } from '@tanstack/react-table';
 import { Wrench, Plus, ArrowUpRight, Clock } from 'lucide-react';
 import api from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { DataTable } from '../components/ui/DataTable';
 import { Button } from '../components/ui/Button';
 import { Badge, type BadgeVariant } from '../components/ui/Badge';
@@ -63,27 +63,36 @@ export const RepairsPage: React.FC = () => {
     resolution_summary: '',
   });
 
-  const fetchRepairs = useCallback(async () => {
+  const [reloadTick, setReloadTick] = useState(0);
+
+  const reloadRepairs = useCallback(() => {
     setLoading(true);
-    try {
-      const res = await api.get('/repairs', {
+    setReloadTick((t) => t + 1);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    api
+      .get('/repairs', {
         params: {
           page,
           per_page: 15,
           repair_status: statusFilter || undefined,
         },
+      })
+      .then((res) => {
+        if (!active) return;
+        const payload = res.data.data;
+        setRepairs(payload.data || []);
+        setMeta(payload.meta || { current_page: 1, last_page: 1, per_page: 15, total: 0 });
+      })
+      .finally(() => {
+        if (active) setLoading(false);
       });
-      const payload = res.data.data;
-      setRepairs(payload.data || []);
-      setMeta(payload.meta || { current_page: 1, last_page: 1, per_page: 15, total: 0 });
-    } finally {
-      setLoading(false);
-    }
-  }, [page, statusFilter]);
-
-  useEffect(() => {
-    fetchRepairs();
-  }, [fetchRepairs]);
+    return () => {
+      active = false;
+    };
+  }, [page, statusFilter, reloadTick]);
 
   useEffect(() => {
     Promise.allSettled([
@@ -127,7 +136,7 @@ export const RepairsPage: React.FC = () => {
         cost: '',
         diagnostic_notes: '',
       });
-      fetchRepairs();
+      reloadRepairs();
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
       setCreateErr(axiosErr.response?.data?.message || 'Failed to log repair ticket.');
@@ -148,7 +157,7 @@ export const RepairsPage: React.FC = () => {
       const res = await api.post(`/repairs/${selectedJob.id}/progress`, payload);
       setSelectedJob(res.data.data);
       setProgressForm((prev) => ({ ...prev, comments: '' }));
-      fetchRepairs();
+      reloadRepairs();
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
       setProgressErr(axiosErr.response?.data?.message || 'Failed to record repair progress.');

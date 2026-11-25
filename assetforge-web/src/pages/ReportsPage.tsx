@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { type ColumnDef } from '@tanstack/react-table';
 import { FileBarChart2, Download, RotateCcw, Filter } from 'lucide-react';
 import {
@@ -53,27 +53,37 @@ export const ReportsPage: React.FC = () => {
     });
   }, []);
 
-  const fetchReport = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params: Record<string, string> = {};
-      if (filters.date_from) params.date_from = filters.date_from;
-      if (filters.date_to) params.date_to = filters.date_to;
-      if (filters.category_id) params.category_id = filters.category_id;
-      if (filters.location_id) params.location_id = filters.location_id;
-      if (activeTab === 'warranties' && filters.status) params.status = filters.status;
-      if (activeTab === 'repairs' && filters.repair_status) params.repair_status = filters.repair_status;
+  const [reloadTick, setReloadTick] = useState(0);
 
-      const res = await api.get(`/reports/${activeTab}`, { params });
-      setReport(res.data.data);
-    } finally {
-      setLoading(false);
-    }
-  }, [activeTab, filters]);
+  const triggerReload = () => {
+    setLoading(true);
+    setReloadTick((t) => t + 1);
+  };
 
   useEffect(() => {
-    fetchReport();
-  }, [fetchReport]);
+    let active = true;
+    const params: Record<string, string> = {};
+    if (filters.date_from) params.date_from = filters.date_from;
+    if (filters.date_to) params.date_to = filters.date_to;
+    if (filters.category_id) params.category_id = filters.category_id;
+    if (filters.location_id) params.location_id = filters.location_id;
+    if (activeTab === 'warranties' && filters.status) params.status = filters.status;
+    if (activeTab === 'repairs' && filters.repair_status) params.repair_status = filters.repair_status;
+
+    api
+      .get(`/reports/${activeTab}`, { params })
+      .then((res) => {
+        if (!active) return;
+        setReport(res.data.data);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [activeTab, filters, reloadTick]);
 
   const handleExport = async (format: 'xlsx' | 'csv' | 'pdf') => {
     setExporting(format);
@@ -287,7 +297,7 @@ export const ReportsPage: React.FC = () => {
           )}
 
           <div className="flex gap-2">
-            <Button variant="outline" className="w-full" onClick={fetchReport}>
+            <Button variant="outline" className="w-full" onClick={triggerReload}>
               <Filter className="w-3.5 h-3.5" /> Apply
             </Button>
             <Button variant="ghost" onClick={resetFilters} title="Reset Filters">

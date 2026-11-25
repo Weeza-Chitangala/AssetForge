@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import api from '../../services/api';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
@@ -28,6 +28,60 @@ interface AssetFormModalProps {
   departments: Department[];
 }
 
+function createInitialFormState(asset: EquipmentAsset | null | undefined, statuses: AssetStatus[]) {
+  if (asset) {
+    return {
+      asset_tag: asset.asset_tag || '',
+      serial_number: asset.serial_number || '',
+      name: asset.name || '',
+      category_id: asset.category?.id || '',
+      manufacturer_id: asset.manufacturer?.id || '',
+      asset_model_id: asset.model?.id || '',
+      location_id: asset.location?.id || '',
+      status_id: asset.status?.id || '',
+      department_id: '',
+      operating_system: asset.specs?.operating_system || '',
+      processor: asset.specs?.processor || '',
+      ram: asset.specs?.ram || '',
+      storage: asset.specs?.storage || '',
+      mac_address: asset.specs?.mac_address || '',
+      ip_address: asset.specs?.ip_address || '',
+      supplier: asset.procurement?.supplier || '',
+      order_number: asset.procurement?.order_number || '',
+      purchase_date: asset.procurement?.purchase_date || '',
+      purchase_cost: asset.procurement?.purchase_cost ? String(asset.procurement.purchase_cost) : '',
+      warranty_expiry_date: asset.procurement?.warranty_expiry_date || '',
+      condition: asset.condition || 'good',
+      notes: asset.notes || '',
+    };
+  }
+
+  return {
+    asset_tag: '',
+    serial_number: '',
+    name: '',
+    category_id: '',
+    manufacturer_id: '',
+    asset_model_id: '',
+    location_id: '',
+    status_id: statuses.find((s) => s.code === 'AVAILABLE')?.id || '',
+    department_id: '',
+    operating_system: '',
+    processor: '',
+    ram: '',
+    storage: '',
+    mac_address: '',
+    ip_address: '',
+    supplier: '',
+    order_number: '',
+    purchase_date: '',
+    purchase_cost: '',
+    warranty_expiry_date: '',
+    condition: 'good',
+    notes: '',
+  };
+}
+
 export const AssetFormModal: React.FC<AssetFormModalProps> = ({
   open,
   onClose,
@@ -43,86 +97,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
   const isEdit = Boolean(asset);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const [form, setForm] = useState({
-    asset_tag: '',
-    serial_number: '',
-    name: '',
-    category_id: '',
-    manufacturer_id: '',
-    asset_model_id: '',
-    location_id: '',
-    status_id: '',
-    department_id: '',
-    operating_system: '',
-    processor: '',
-    ram: '',
-    storage: '',
-    mac_address: '',
-    ip_address: '',
-    supplier: '',
-    order_number: '',
-    purchase_date: '',
-    purchase_cost: '',
-    warranty_expiry_date: '',
-    condition: 'good',
-    notes: '',
-  });
-
-  useEffect(() => {
-    if (asset) {
-      setForm({
-        asset_tag: asset.asset_tag || '',
-        serial_number: asset.serial_number || '',
-        name: asset.name || '',
-        category_id: asset.category?.id || '',
-        manufacturer_id: asset.manufacturer?.id || '',
-        asset_model_id: asset.model?.id || '',
-        location_id: asset.location?.id || '',
-        status_id: asset.status?.id || '',
-        department_id: '',
-        operating_system: asset.specs?.operating_system || '',
-        processor: asset.specs?.processor || '',
-        ram: asset.specs?.ram || '',
-        storage: asset.specs?.storage || '',
-        mac_address: asset.specs?.mac_address || '',
-        ip_address: asset.specs?.ip_address || '',
-        supplier: asset.procurement?.supplier || '',
-        order_number: asset.procurement?.order_number || '',
-        purchase_date: asset.procurement?.purchase_date || '',
-        purchase_cost: asset.procurement?.purchase_cost ? String(asset.procurement.purchase_cost) : '',
-        warranty_expiry_date: asset.procurement?.warranty_expiry_date || '',
-        condition: asset.condition || 'good',
-        notes: asset.notes || '',
-      });
-    } else {
-      setForm({
-        asset_tag: '',
-        serial_number: '',
-        name: '',
-        category_id: '',
-        manufacturer_id: '',
-        asset_model_id: '',
-        location_id: '',
-        status_id: statuses.find((s) => s.code === 'AVAILABLE')?.id || '',
-        department_id: '',
-        operating_system: '',
-        processor: '',
-        ram: '',
-        storage: '',
-        mac_address: '',
-        ip_address: '',
-        supplier: '',
-        order_number: '',
-        purchase_date: '',
-        purchase_cost: '',
-        warranty_expiry_date: '',
-        condition: 'good',
-        notes: '',
-      });
-    }
-    setError(null);
-  }, [asset, open, statuses]);
+  const [form, setForm] = useState(() => createInitialFormState(asset, statuses));
 
   const filteredModels = form.manufacturer_id
     ? models.filter((m) => m.manufacturer?.id === form.manufacturer_id)
