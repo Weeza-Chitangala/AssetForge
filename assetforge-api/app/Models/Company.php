@@ -3,13 +3,15 @@
 namespace App\Models;
 
 use App\Traits\HasUuid;
-use App\Models\Traits\BelongsToTenant;
+use App\Traits\LogsTenantActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Company extends Model
 {
-    use HasUuid, SoftDeletes;
+    use HasUuid, SoftDeletes, LogsActivity, LogsTenantActivity;
 
 
     protected $fillable = [
@@ -18,6 +20,15 @@ class Company extends Model
         'code',
         'status',
     ];
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('company')
+            ->logAll()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
 
 
     protected $casts = [

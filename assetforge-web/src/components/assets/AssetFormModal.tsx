@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import api from '../../services/api';
+import { useAuth } from '../../context/useAuth';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
@@ -94,7 +95,9 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
   statuses,
   departments,
 }) => {
+  const { hasPermission } = useAuth();
   const isEdit = Boolean(asset);
+  const custodyFieldsLocked = isEdit && !hasPermission('assets.transfer');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState(() => createInitialFormState(asset, statuses));
@@ -110,6 +113,9 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
 
     const payload: Record<string, unknown> = {};
     Object.entries(form).forEach(([key, val]) => {
+      if (custodyFieldsLocked && (key === 'location_id' || key === 'department_id')) {
+        return;
+      }
       payload[key] = val === '' ? null : val;
     });
 
@@ -219,9 +225,10 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
             </Select>
 
             <Select
-              label="Location"
+              label={custodyFieldsLocked ? 'Location (requires transfer permission)' : 'Location'}
               value={form.location_id}
               onChange={(e) => setForm({ ...form, location_id: e.target.value })}
+              disabled={custodyFieldsLocked}
             >
               <option value="">Select location...</option>
               {locations.map((l) => (
@@ -245,9 +252,10 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
             </Select>
 
             <Select
-              label="Department"
+              label={custodyFieldsLocked ? 'Department (requires transfer permission)' : 'Department'}
               value={form.department_id}
               onChange={(e) => setForm({ ...form, department_id: e.target.value })}
+              disabled={custodyFieldsLocked}
             >
               <option value="">Select department...</option>
               {departments.map((d) => (

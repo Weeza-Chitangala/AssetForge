@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
+import { useAuth } from '../context/useAuth';
 import {
   Laptop,
   Wrench,
@@ -30,6 +31,7 @@ import { formatCurrency } from '../lib/utils';
 import type { DashboardData } from '../types';
 
 export const Dashboard: React.FC = () => {
+  const { hasPermission } = useAuth();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -273,9 +275,11 @@ export const Dashboard: React.FC = () => {
               <Activity className="w-4 h-4 text-indigo-600" />
               <CardTitle>Recent Custody Movements</CardTitle>
             </div>
-            <Link to="/audit-logs" className="text-xs font-medium text-indigo-600 hover:underline">
-              Audit trail
-            </Link>
+            {hasPermission('audit.view') && (
+              <Link to="/audit-logs" className="text-xs font-medium text-indigo-600 hover:underline">
+                Audit trail
+              </Link>
+            )}
           </CardHeader>
           <CardContent>
             {data.activity.recent_movements.length === 0 ? (

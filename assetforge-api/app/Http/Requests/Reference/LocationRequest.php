@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Reference;
 
+use App\Models\Company;
+use App\Rules\TenantRecordExists;
 use Illuminate\Foundation\Http\FormRequest;
 
 class LocationRequest extends FormRequest
@@ -13,9 +15,11 @@ class LocationRequest extends FormRequest
 
     public function rules(): array
     {
+        $tenantId = $this->user()?->tenant_id;
+
         return [
             'name' => ['required', 'string', 'max:255'],
-            'company_id' => ['nullable', 'uuid', 'exists:companies,id'],
+            'company_id' => ['nullable', 'uuid', new TenantRecordExists(Company::class, $tenantId)],
             'code' => ['nullable', 'string', 'max:50'],
             'building' => ['nullable', 'string', 'max:100'],
             'floor' => ['nullable', 'string', 'max:50'],

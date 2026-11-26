@@ -70,16 +70,21 @@ class RepairJobController extends Controller
                 'user_id' => $user->id,
             ]);
 
-            // 3. Auto transition asset status to IN_REPAIR
+            // 3. Auto transition asset status to IN_REPAIR without altering custody or placement
             $inRepairStatus = AssetStatus::where('code', 'IN_REPAIR')->first();
             $asset = EquipmentAsset::find($job->equipment_asset_id);
             if ($asset && $inRepairStatus) {
-                // Record movement audit
                 AssetMovement::create([
                     'tenant_id' => $user->tenant_id,
                     'equipment_asset_id' => $asset->id,
                     'action_type' => 'repair_opened',
+                    'from_user_id' => $asset->assigned_to_user_id,
+                    'from_location_id' => $asset->location_id,
+                    'from_department_id' => $asset->department_id,
                     'from_status_id' => $asset->status_id,
+                    'to_user_id' => $asset->assigned_to_user_id,
+                    'to_location_id' => $asset->location_id,
+                    'to_department_id' => $asset->department_id,
                     'to_status_id' => $inRepairStatus->id,
                     'notes' => 'Sent for repair: ' . $job->job_number,
                     'performed_by' => $user->id,
@@ -168,27 +173,61 @@ class RepairJobController extends Controller
 
             $repairJob->update($updatePayload);
 
-            // 3. If repair is completed, automatically restore asset to AVAILABLE in inventory
+            // 3. If repair is completed, restore operational asset status while preserving custody and placement
             if ($data['status'] === 'completed') {
-                $availableStatus = AssetStatus::where('code', 'AVAILABLE')->first();
                 $asset = $repairJob->asset;
 
-                if ($asset && $availableStatus) {
-                    AssetMovement::create([
-                        'tenant_id' => $user->tenant_id,
-                        'equipment_asset_id' => $asset->id,
-                        'action_type' => 'repair_completed',
-                        'from_status_id' => $asset->status_id,
-                        'to_status_id' => $availableStatus->id,
-                        'notes' => 'Repair completed (' . $repairJob->job_number . '). Returned to stock.',
-                        'performed_by' => $user->id,
-                    ]);
+                if ($asset) {
+                    $hasCustodian = $asset->assigned_to_user_id !== null;
+                    $restoredStatus = $hasCustodian
+                        ? AssetStatus::where('code', 'ASSIGNED')->first()
+                        : AssetStatus::where('code', 'AVAILABLE')->first();
 
-                    $asset->update([
-                        'status_id' => $availableStatus->id,
-                        'assigned_to_user_id' => null, // Available for re-assignment
-                        'updated_by' => $user->id,
-                    ]);
+                    if ($restoredStatus) {
+                        AssetMovement::create([
+                            'tenant_id' => $user->tenant_id,
+                            'equipment_asset_id' => $asset->id,
+                            'action_type' => 'repair_completed',
+                            'from_user_id' => $asset->assigned_to_user_id,
+                            'from_location_id' => $asset->location_id,
+                            'from_department_id' => $asset->department_id,
+                            'from_status_id' => $asset->status_id,
+                            'to_user_id' => $asset->assigned_to_user_id,
+                            'to_location_id' => $asset->location_id,
+                            'to_department_id' => $asset->department_id,
+                            'to_status_id' => $restoredStatus->id,
+                            'notes' => $hasCustodian
+                                ? 'Repair completed (' . $repairJob->job_number . '). Returned with existing custodian assignment.'
+                                : 'Repair completed (' . $repairJob->job_number . '). Ready in inventory.',
+                            'performed_by' => $user->id,
+                        ]);
+
+                        $asset->update([
+                            'status_id' => $restoredStatus->id,
+                            'updated_by' => $user->id,
+                        ]);
+                    } elseif ($hasCustodian) {
+                        // Never downgrade an assigned asset to AVAILABLE if ASSIGNED status is missing.
+                        AssetMovement::create([
+                            'tenant_id' => $user->tenant_id,
+                            'equipment_asset_id' => $asset->id,
+                            'action_type' => 'repair_completed',
+                            'from_user_id' => $asset->assigned_to_user_id,
+                            'from_location_id' => $asset->location_id,
+                            'from_department_id' => $asset->department_id,
+                            'from_status_id' => $asset->status_id,
+                            'to_user_id' => $asset->assigned_to_user_id,
+                            'to_location_id' => $asset->location_id,
+                            'to_department_id' => $asset->department_id,
+                            'to_status_id' => $asset->status_id,
+                            'notes' => 'Repair completed (' . $repairJob->job_number . '). Custodian assignment preserved; ASSIGNED status not configured.',
+                            'performed_by' => $user->id,
+                        ]);
+
+                        $asset->update([
+                            'updated_by' => $user->id,
+                        ]);
+                    }
                 }
             }
         });

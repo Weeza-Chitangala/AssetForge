@@ -99,7 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const hasPermission = useCallback(
     (permission: string): boolean => {
       if (!user) return false;
-      if (user.roles?.includes('Super Administrator')) return true;
+      if (user.roles?.includes('Super User')) return true;
       return Boolean(user.permissions?.includes(permission));
     },
     [user]

@@ -78,7 +78,7 @@ function App() {
             <Route
               path="audit-logs"
               element={
-                <ProtectedRoute requiredPermission="reports.view">
+                <ProtectedRoute requiredPermission="audit.view">
                   <AuditLogsPage />
                 </ProtectedRoute>
               }

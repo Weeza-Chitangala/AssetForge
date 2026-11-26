@@ -7,27 +7,39 @@ use App\Http\Requests\User\StoreUserRequest;
 use App\Http\Requests\User\UpdateUserRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use App\Services\RoleHierarchyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
+    public function __construct(
+        private readonly RoleHierarchyService $roleHierarchy,
+    ) {
+    }
     /**
      * Display a listing of users within the tenant.
      */
     public function index(Request $request): JsonResponse
     {
+        $tenantId = $request->user()?->tenant_id;
+        abort_if(! $tenantId, 403, 'An active tenant context is required for this operation.');
+
         $query = User::with(['tenant', 'organization', 'company', 'department', 'team', 'roles'])
-            ->where('tenant_id', $request->user()?->tenant_id);
+            ->where('tenant_id', $tenantId);
+        $likeOp = DB::connection()->getDriverName() === 'pgsql' ? 'ILIKE' : 'LIKE';
 
         // Search filter (name, email, employee_number)
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'ILIKE', "%{$search}%")
-                  ->orWhere('email', 'ILIKE', "%{$search}%")
-                  ->orWhere('employee_number', 'ILIKE', "%{$search}%");
+            $query->where(function ($q) use ($search, $likeOp) {
+                $q->where('name', $likeOp, "%{$search}%")
+                  ->orWhere('email', $likeOp, "%{$search}%")
+                  ->orWhere('employee_number', $likeOp, "%{$search}%");
             });
         }
 
@@ -59,19 +71,29 @@ class UserController extends Controller
      */
     public function store(StoreUserRequest $request): JsonResponse
     {
+        $tenantId = $request->user()?->tenant_id;
+        abort_if(! $tenantId, 403, 'An active tenant context is required for this operation.');
+
         $data = $request->validated();
-        $data['password'] = Hash::make($data['password']);
 
-        // Ensure tenant_id is explicitly set from authenticated user
-        if (empty($data['tenant_id']) && $request->user()) {
-            $data['tenant_id'] = $request->user()->tenant_id;
-        }
+        $user = $this->roleHierarchy->withPrivilegedAccountLock(function () use ($data, $tenantId) {
+            if (! empty($data['roles'])) {
+                Gate::authorize('assignUserRoles', [$data['roles']]);
+            }
 
-        $user = User::create($data);
+            $payload = $data;
+            $payload['password'] = Hash::make($payload['password']);
+            $payload['tenant_id'] = $tenantId;
 
-        if (!empty($data['roles'])) {
-            $user->syncRoles($data['roles']);
-        }
+            $created = User::create($payload);
+
+            if (! empty($payload['roles'])) {
+                $created->syncRoles($payload['roles']);
+                $this->logRoleSync($created, [], $created->getRoleNames()->values()->all());
+            }
+
+            return $created;
+        });
 
         $user->load(['tenant', 'organization', 'company', 'department', 'team', 'roles']);
 
@@ -87,7 +109,9 @@ class UserController extends Controller
      */
     public function show(Request $request, User $user): JsonResponse
     {
-        abort_if($user->tenant_id !== $request->user()?->tenant_id, 404, 'User not found.');
+        $tenantId = $request->user()?->tenant_id;
+        abort_if(! $tenantId, 403, 'An active tenant context is required for this operation.');
+        abort_if($user->tenant_id !== $tenantId, 404, 'User not found.');
         $user->load(['tenant', 'organization', 'company', 'department', 'team', 'roles']);
 
         return response()->json([
@@ -102,28 +126,90 @@ class UserController extends Controller
      */
     public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
-        abort_if($user->tenant_id !== $request->user()?->tenant_id, 404, 'User not found.');
+        $tenantId = $request->user()?->tenant_id;
+        abort_if(! $tenantId, 403, 'An active tenant context is required for this operation.');
+        abort_if($user->tenant_id !== $tenantId, 404, 'User not found.');
+
         $data = $request->validated();
 
-        if (!empty($data['password'])) {
-            $data['password'] = Hash::make($data['password']);
-        } else {
-            unset($data['password']);
-        }
+        $updatedUser = $this->roleHierarchy->withPrivilegedAccountLock(function () use ($user, $data) {
+            $lockedTarget = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
+            Gate::authorize('updateUserAccount', [$lockedTarget, $data]);
 
-        $user->update($data);
+            $payload = $data;
+            if (! empty($payload['password'])) {
+                $payload['password'] = Hash::make($payload['password']);
+            } else {
+                unset($payload['password']);
+            }
 
-        if (array_key_exists('roles', $data)) {
-            $user->syncRoles($data['roles'] ?? []);
-        }
+            // Prevent payload injection from altering tenant ownership via user updates.
+            unset($payload['tenant_id']);
 
-        $user->load(['tenant', 'organization', 'company', 'department', 'team', 'roles']);
+            $lockedTarget->update($payload);
+
+            if (array_key_exists('roles', $payload)) {
+                $previousRoles = $lockedTarget->roles()->pluck('name')->values()->all();
+                $lockedTarget->syncRoles($payload['roles'] ?? []);
+                $lockedTarget->unsetRelation('roles');
+                $updatedRoles = $lockedTarget->getRoleNames()->values()->all();
+
+                $prevSorted = $previousRoles;
+                $updSorted = $updatedRoles;
+                sort($prevSorted);
+                sort($updSorted);
+
+                if ($prevSorted !== $updSorted) {
+                    $this->logRoleSync($lockedTarget, $previousRoles, $updatedRoles);
+                }
+            }
+
+            return $lockedTarget;
+        });
+
+        $updatedUser->load(['tenant', 'organization', 'company', 'department', 'team', 'roles']);
 
         return response()->json([
             'success' => true,
             'message' => 'User updated successfully.',
-            'data' => new UserResource($user),
+            'data' => new UserResource($updatedUser),
         ]);
+    }
+
+    /**
+     * Record role synchronization explicitly because Spatie role pivot changes do not fire model updates.
+     *
+     * @param  array<int, string>  $previousRoles
+     * @param  array<int, string>  $newRoles
+     */
+    private function logRoleSync(User $target, array $previousRoles, array $newRoles): void
+    {
+        $causer = Auth::user();
+        $properties = [
+            'tenant_id' => $target->tenant_id !== null ? (string) $target->tenant_id : null,
+            'previous_roles' => array_values($previousRoles),
+            'new_roles' => array_values($newRoles),
+        ];
+
+        if ($causer instanceof User && $causer->hasRole(RoleHierarchyService::ROLE_SUPER_USER)) {
+            $properties['causer_is_super_user'] = true;
+
+            if (
+                $target->tenant_id !== null
+                && $causer->tenant_id !== null
+                && (string) $causer->tenant_id !== (string) $target->tenant_id
+            ) {
+                $properties['scope'] = 'platform_cross_tenant';
+                $properties['causer_tenant_id'] = (string) $causer->tenant_id;
+            }
+        }
+
+        activity('user_roles')
+            ->performedOn($target)
+            ->causedBy($causer)
+            ->event('roles_synced')
+            ->withProperties($properties)
+            ->log('User roles synchronized');
     }
 
     /**
@@ -131,8 +217,15 @@ class UserController extends Controller
      */
     public function destroy(Request $request, User $user): JsonResponse
     {
-        abort_if($user->tenant_id !== $request->user()?->tenant_id, 404, 'User not found.');
-        $user->delete();
+        $tenantId = $request->user()?->tenant_id;
+        abort_if(! $tenantId, 403, 'An active tenant context is required for this operation.');
+        abort_if($user->tenant_id !== $tenantId, 404, 'User not found.');
+
+        $this->roleHierarchy->withPrivilegedAccountLock(function () use ($user) {
+            $lockedTarget = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
+            Gate::authorize('deleteUserAccount', [$lockedTarget]);
+            $lockedTarget->delete();
+        });
 
         return response()->json([
             'success' => true,

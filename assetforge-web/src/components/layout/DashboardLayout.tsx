@@ -34,7 +34,7 @@ const navItems: NavItem[] = [
   { to: '/warranties', label: 'Warranties', icon: ShieldCheck, permission: 'assets.view' },
   { to: '/repairs', label: 'Repairs', icon: Wrench, permission: 'repairs.view' },
   { to: '/reports', label: 'Reports', icon: FileBarChart2, permission: 'reports.view' },
-  { to: '/audit-logs', label: 'Audit Logs', icon: History, permission: 'reports.view' },
+  { to: '/audit-logs', label: 'Audit Logs', icon: History, permission: 'audit.view' },
   { to: '/settings', label: 'System Settings', icon: Settings, permission: 'settings.manage' },
 ];
 

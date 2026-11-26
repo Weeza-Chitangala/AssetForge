@@ -43,7 +43,7 @@ class ReportingAndSettingsTest extends TestCase
             'company_id' => $this->company->id,
             'status' => 'active',
         ]);
-        $this->admin->assignRole('Super Administrator');
+        $this->admin->assignRole('Super User');
 
         $this->category = Category::create(['tenant_id' => $this->tenant->id, 'name' => 'Laptops', 'code' => 'LAP', 'status' => 'active']);
         $this->location = Location::create(['tenant_id' => $this->tenant->id, 'company_id' => $this->company->id, 'name' => 'HQ', 'code' => 'HQ', 'status' => 'active']);
@@ -95,7 +95,7 @@ class ReportingAndSettingsTest extends TestCase
 
         $token = $loginResp->json('data.token');
         $this->assertNotEmpty($token);
-        $this->assertContains('Super Administrator', $loginResp->json('data.user.roles'));
+        $this->assertContains('Super User', $loginResp->json('data.user.roles'));
         $this->assertContains('reports.view', $loginResp->json('data.user.permissions'));
 
         $this->withHeaders(['Authorization' => "Bearer {$token}"])

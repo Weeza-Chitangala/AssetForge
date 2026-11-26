@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api\V1;
 use App\Exports\AssetsExport;
 use App\Http\Controllers\Controller;
 use App\Imports\AssetsImport;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
 use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -18,14 +20,18 @@ class AssetBatchController extends Controller
      */
     public function import(Request $request): JsonResponse
     {
+        $tenantId = $request->user()?->tenant_id;
+        abort_if(! $tenantId, 403, 'An active tenant context is required for this operation.');
+
         $request->validate([
             'file' => ['required', 'file', 'mimes:xlsx,csv,txt', 'max:10240'],
         ]);
 
         try {
             $import = new AssetsImport(
-                $request->user()->tenant_id,
-                $request->user()->id
+                $tenantId,
+                $request->user()->id,
+                $request->user()
             );
 
             Excel::import($import, $request->file('file'));
@@ -34,6 +40,17 @@ class AssetBatchController extends Controller
                 'success' => true,
                 'message' => 'Assets bulk imported successfully.',
             ]);
+        } catch (AuthorizationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 403);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Spreadsheet validation failed.',
+                'errors'  => $e->errors(),
+            ], 422);
         } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
             return response()->json([
                 'success' => false,

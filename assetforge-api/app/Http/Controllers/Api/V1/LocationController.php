@@ -8,19 +8,25 @@ use App\Http\Resources\LocationResource;
 use App\Models\Location;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class LocationController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
         $query = Location::with('company');
+        $likeOp = DB::connection()->getDriverName() === 'pgsql' ? 'ILIKE' : 'LIKE';
 
         if ($request->filled('company_id')) {
             $query->where('company_id', $request->company_id);
         }
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where('name', 'ILIKE', "%{$search}%")->orWhere('code', 'ILIKE', "%{$search}%");
+            // Group OR conditions so TenantScope and company filter apply to every search branch.
+            $query->where(function ($q) use ($search, $likeOp) {
+                $q->where('name', $likeOp, "%{$search}%")
+                    ->orWhere('code', $likeOp, "%{$search}%");
+            });
         }
 
         $locations = $query->latest()->get();

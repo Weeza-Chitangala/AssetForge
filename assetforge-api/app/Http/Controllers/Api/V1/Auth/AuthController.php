@@ -51,6 +51,19 @@ class AuthController extends Controller
         ]);
     }
 
+    public function logoutAll(Request $request): JsonResponse
+    {
+        $revoked = $this->authService->logoutAll($request->user());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'All active sessions have been revoked.',
+            'data' => [
+                'revoked_tokens' => $revoked,
+            ],
+        ]);
+    }
+
     public function me(Request $request): JsonResponse
     {
         $user = $request->user()->load(['tenant', 'organization', 'company', 'department', 'team', 'roles', 'permissions']);

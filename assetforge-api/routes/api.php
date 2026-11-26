@@ -47,24 +47,25 @@ Route::prefix('v1')->group(function () {
 
     // Auth Routes
     Route::prefix('auth')->group(function () {
-        Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
+        Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
-        Route::middleware('auth:sanctum')->group(function () {
+        Route::middleware(['auth:sanctum', 'active.session'])->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
+            Route::post('/logout-all', [AuthController::class, 'logoutAll']);
             Route::get('/me', [AuthController::class, 'me']);
         });
     });
 
     // Authenticated API Routes
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'active.session'])->group(function () {
 
         // Search & Dashboard
         Route::get('search', [GlobalSearchController::class, 'search']);
         Route::get('dashboard/summary', [DashboardController::class, 'summary'])->middleware('permission:dashboard.view');
 
         // Audit Logs
-        Route::get('audit-logs', [AuditLogController::class, 'index'])->middleware('permission:reports.view');
-        Route::get('audit-logs/{type}/{id}', [AuditLogController::class, 'entityAudit'])->middleware('permission:reports.view');
+        Route::get('audit-logs', [AuditLogController::class, 'index'])->middleware('permission:audit.view');
+        Route::get('audit-logs/{type}/{id}', [AuditLogController::class, 'entityAudit'])->middleware('permission:audit.view');
 
         // Reports & Exports (AF-045 to AF-049)
         Route::prefix('reports')->middleware('permission:reports.view')->group(function () {
@@ -98,10 +99,10 @@ Route::prefix('v1')->group(function () {
         Route::get('assets/{asset}/qr', [AssetLabelController::class, 'qrCode'])->name('assets.qr')->middleware('permission:assets.view');
         Route::get('assets/{asset}/label-data', [AssetLabelController::class, 'printPayload'])->name('assets.label-data')->middleware('permission:assets.view');
 
-        // Asset Lifecycle Actions
-        Route::post('assets/{asset}/checkout', [AssetLifecycleController::class, 'checkout'])->middleware('permission:assets.update');
-        Route::post('assets/{asset}/checkin', [AssetLifecycleController::class, 'checkin'])->middleware('permission:assets.update');
-        Route::post('assets/{asset}/transfer', [AssetLifecycleController::class, 'transfer'])->middleware('permission:assets.update');
+        // Asset Lifecycle Actions (custody operations require dedicated assets.transfer permission)
+        Route::post('assets/{asset}/checkout', [AssetLifecycleController::class, 'checkout'])->middleware('permission:assets.transfer');
+        Route::post('assets/{asset}/checkin', [AssetLifecycleController::class, 'checkin'])->middleware('permission:assets.transfer');
+        Route::post('assets/{asset}/transfer', [AssetLifecycleController::class, 'transfer'])->middleware('permission:assets.transfer');
         Route::get('assets/{asset}/history', [AssetLifecycleController::class, 'history'])->middleware('permission:assets.view');
 
         // Warranty Endpoints
@@ -142,12 +143,6 @@ Route::prefix('v1')->group(function () {
         Route::put('repairs/{repairJob}', [RepairJobController::class, 'update'])->middleware('permission:repairs.update');
         Route::post('repairs/{repairJob}/progress', [RepairJobController::class, 'addProgress'])->middleware('permission:repairs.update');
 
-        // Permission Test Route
-        Route::middleware('permission:settings.manage')->get('/test-permission', function () {
-            return response()->json([
-                'success' => true,
-                'message' => 'Permission granted',
-            ]);
-        });
+        // Routes removed: /test-permission debug route is disabled in production security hardening.
     });
 });
