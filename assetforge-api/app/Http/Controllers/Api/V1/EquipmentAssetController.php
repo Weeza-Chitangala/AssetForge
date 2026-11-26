@@ -7,11 +7,17 @@ use App\Http\Requests\Asset\StoreEquipmentAssetRequest;
 use App\Http\Requests\Asset\UpdateEquipmentAssetRequest;
 use App\Http\Resources\EquipmentAssetResource;
 use App\Models\EquipmentAsset;
+use App\Services\AssetCustodyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class EquipmentAssetController extends Controller
 {
+    public function __construct(
+        private readonly AssetCustodyService $custodyService,
+    ) {
+    }
     protected array $relations = [
         'category',
         'manufacturer',
@@ -30,14 +36,15 @@ class EquipmentAssetController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = EquipmentAsset::with($this->relations);
+        $likeOp = DB::connection()->getDriverName() === 'pgsql' ? 'ILIKE' : 'LIKE';
 
         // Search filter (asset_tag, serial_number, name)
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('asset_tag', 'ILIKE', "%{$search}%")
-                  ->orWhere('serial_number', 'ILIKE', "%{$search}%")
-                  ->orWhere('name', 'ILIKE', "%{$search}%");
+            $query->where(function ($q) use ($search, $likeOp) {
+                $q->where('asset_tag', $likeOp, "%{$search}%")
+                  ->orWhere('serial_number', $likeOp, "%{$search}%")
+                  ->orWhere('name', $likeOp, "%{$search}%");
             });
         }
 
@@ -72,13 +79,19 @@ class EquipmentAssetController extends Controller
      */
     public function store(StoreEquipmentAssetRequest $request): JsonResponse
     {
+        $tenantId = $request->user()?->tenant_id;
+        abort_if(! $tenantId, 403, 'An active tenant context is required for this operation.');
+
         $data = $request->validated();
+        $blockedCustodyFields = $this->custodyService->unauthorizedCustodyFields($request->user(), $data);
+        abort_if(
+            $blockedCustodyFields !== [],
+            403,
+            'You do not have permission (assets.transfer) to assign custody fields.'
+        );
 
-        if (empty($data['tenant_id']) && $request->user()) {
-            $data['tenant_id'] = $request->user()->tenant_id;
-        }
-
-        $data['created_by'] = $request->user()?->id;
+        $data['tenant_id'] = $tenantId;
+        $data['created_by'] = $request->user()->id;
 
         $asset = EquipmentAsset::create($data);
         $asset->load($this->relations);
@@ -110,6 +123,13 @@ class EquipmentAssetController extends Controller
     public function update(UpdateEquipmentAssetRequest $request, EquipmentAsset $asset): JsonResponse
     {
         $data = $request->validated();
+        $blockedCustodyFields = $this->custodyService->unauthorizedCustodyFields($request->user(), $data, $asset);
+        abort_if(
+            $blockedCustodyFields !== [],
+            403,
+            'You do not have permission (assets.transfer) to modify custody fields.'
+        );
+
         $data['updated_by'] = $request->user()?->id;
 
         $asset->update($data);

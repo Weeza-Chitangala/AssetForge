@@ -94,13 +94,13 @@ All access decisions must follow the approved RBAC Permission Matrix.
 
 # 5. AssetForge Roles
 
-| Role                | Description                                                               |
-| ------------------- | ------------------------------------------------------------------------- |
-| Super Administrator | Full control of the AssetForge platform, including security configuration |
-| Administrator       | Manages operational settings, users, and system activities                |
-| Inventory Manager   | Manages assets, asset lifecycle, assignments, and inventory records       |
-| Department Manager  | Oversees assets belonging to their department                             |
-| Standard User       | Views and interacts only with assigned assets                             |
+| Role          | Scope    | Description                                                                                  |
+| ------------- | -------- | -------------------------------------------------------------------------------------------- |
+| Super User    | Platform | Platform-level authority; manages Administrators, platform config, and cross-tenant governance |
+| Administrator | Tenant   | Tenant-level authority; manages authorised operational users and tenant configuration only     |
+| Asset Manager | Tenant   | Operational role managing assets, warranties, repairs, reports, and asset lifecycle custody   |
+| Technician    | Tenant   | Operational role handling repairs, diagnostics, and technical asset updates                   |
+| Auditor       | Tenant   | Read-only operational compliance role across inventory, repairs, reports, and audit logs     |
 
 ---
 

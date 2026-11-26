@@ -35,6 +35,7 @@ import type {
 export const AssetDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { hasPermission } = useAuth();
+  const canViewAudit = hasPermission('audit.view');
 
   const [asset, setAsset] = useState<EquipmentAsset | null>(null);
   const [movements, setMovements] = useState<AssetMovement[]>([]);
@@ -80,7 +81,7 @@ export const AssetDetailPage: React.FC = () => {
       api.get(`/assets/${id}/history`),
       api.get(`/assets/${id}/label-data`),
       api.get(`/assets/${id}/qr`, { responseType: 'text' }),
-      api.get(`/audit-logs/EquipmentAsset/${id}`),
+      canViewAudit ? api.get(`/audit-logs/EquipmentAsset/${id}`) : Promise.resolve(null),
     ])
       .then(([assetRes, historyRes, labelRes, qrRes, auditRes]) => {
         if (!active) return;
@@ -101,7 +102,7 @@ export const AssetDetailPage: React.FC = () => {
         if (qrRes.status === 'fulfilled') {
           setQrSvg(qrRes.value.data);
         }
-        if (auditRes.status === 'fulfilled') {
+        if (auditRes.status === 'fulfilled' && auditRes.value) {
           setAuditLogs(auditRes.value.data.data || []);
         }
       })
@@ -112,21 +113,31 @@ export const AssetDetailPage: React.FC = () => {
     return () => {
       active = false;
     };
-  }, [id, reloadTick]);
+  }, [id, reloadTick, canViewAudit]);
 
   useEffect(() => {
+    if (!hasPermission('assets.transfer')) {
+      return;
+    }
+
+    let active = true;
     Promise.allSettled([
-      api.get('/users', { params: { per_page: 100 } }),
+      hasPermission('users.view') ? api.get('/users', { params: { per_page: 100 } }) : Promise.resolve(null),
       api.get('/locations'),
       api.get('/departments'),
       api.get('/asset-statuses'),
     ]).then(([u, l, d, s]) => {
-      if (u.status === 'fulfilled') setUsers(u.value.data.data?.data || []);
+      if (!active) return;
+      if (u.status === 'fulfilled' && u.value) setUsers(u.value.data.data?.data || []);
       if (l.status === 'fulfilled') setLocations(l.value.data.data || []);
       if (d.status === 'fulfilled') setDepartments(d.value.data.data || []);
       if (s.status === 'fulfilled') setStatuses(s.value.data.data || []);
     });
-  }, []);
+
+    return () => {
+      active = false;
+    };
+  }, [hasPermission]);
 
   const openActionModal = (type: 'checkout' | 'checkin' | 'transfer') => {
     setActionType(type);
@@ -203,7 +214,7 @@ export const AssetDetailPage: React.FC = () => {
           </p>
         </div>
 
-        {hasPermission('assets.update') && (
+        {hasPermission('assets.transfer') && (
           <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={() => openActionModal('checkout')}>
               <UserCheck className="w-4 h-4" /> Checkout
@@ -375,32 +386,34 @@ export const AssetDetailPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center gap-2">
-            <Shield className="w-4 h-4 text-emerald-600" />
-            <CardTitle>Entity Audit Trail</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {auditLogs.length === 0 ? (
-              <p className="text-xs text-slate-400">No activity logs recorded for this asset.</p>
-            ) : (
-              <div className="space-y-3">
-                {auditLogs.map((log) => (
-                  <div key={log.id} className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs">
-                    <div className="flex items-center justify-between">
-                      <Badge variant="purple" className="capitalize">
-                        {log.event || log.description}
-                      </Badge>
-                      <span className="text-slate-400">{log.timestamp}</span>
+        {canViewAudit && (
+          <Card>
+            <CardHeader className="flex flex-row items-center gap-2">
+              <Shield className="w-4 h-4 text-emerald-600" />
+              <CardTitle>Entity Audit Trail</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {auditLogs.length === 0 ? (
+                <p className="text-xs text-slate-400">No activity logs recorded for this asset.</p>
+              ) : (
+                <div className="space-y-3">
+                  {auditLogs.map((log) => (
+                    <div key={log.id} className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs">
+                      <div className="flex items-center justify-between">
+                        <Badge variant="purple" className="capitalize">
+                          {log.event || log.description}
+                        </Badge>
+                        <span className="text-slate-400">{log.timestamp}</span>
+                      </div>
+                      <p className="text-slate-700 mt-1.5">{log.description}</p>
+                      <p className="text-[11px] text-slate-400 mt-1">By {log.causer?.name || 'System'}</p>
                     </div>
-                    <p className="text-slate-700 mt-1.5">{log.description}</p>
-                    <p className="text-[11px] text-slate-400 mt-1">By {log.causer?.name || 'System'}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Lifecycle Modal */}
@@ -411,8 +424,8 @@ export const AssetDetailPage: React.FC = () => {
           actionType === 'checkout'
             ? `Checkout Asset ${asset.asset_tag}`
             : actionType === 'checkin'
-            ? `Checkin Asset ${asset.asset_tag}`
-            : `Transfer Asset ${asset.asset_tag}`
+              ? `Checkin Asset ${asset.asset_tag}`
+              : `Transfer Asset ${asset.asset_tag}`
         }
         size="md"
       >

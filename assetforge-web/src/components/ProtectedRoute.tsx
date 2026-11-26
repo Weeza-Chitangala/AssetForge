@@ -32,7 +32,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   const permissionAllowed = !requiredPermission || hasPermission(requiredPermission);
-  const roleAllowed = !allowedRoles || allowedRoles.some((r) => hasRole(r)) || hasRole('Super Administrator');
+  const roleAllowed = !allowedRoles || allowedRoles.some((r) => hasRole(r)) || hasRole('Super User');
 
   if (!permissionAllowed || !roleAllowed) {
     return (
@@ -45,7 +45,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
             <div>
               <h2 className="text-base font-semibold text-slate-900">Access Restricted</h2>
               <p className="text-sm text-slate-600 mt-1">
-                Your current role does not include permission to access this module. Contact your IT Administrator if you
+                Your current role does not include permission to access this module. Contact your Administrator if you
                 need elevated access.
               </p>
             </div>

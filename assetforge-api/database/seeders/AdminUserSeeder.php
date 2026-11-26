@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\RoleHierarchyService;
 use Illuminate\Database\Seeder;
 
 class AdminUserSeeder extends Seeder
@@ -22,8 +23,8 @@ class AdminUserSeeder extends Seeder
             ]
         );
 
-        if (!$admin->hasRole('Super Administrator')) {
-            $admin->assignRole('Super Administrator');
+        if (! $admin->hasRole(RoleHierarchyService::ROLE_SUPER_USER, RoleHierarchyService::GUARD)) {
+            $admin->assignRole(RoleHierarchyService::ROLE_SUPER_USER);
         }
     }
 }

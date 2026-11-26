@@ -17,7 +17,6 @@ return [
         'Content-Type',
         'Accept',
         'X-Requested-With',
-        'X-Tenant-ID',
     ],
 
     'exposed_headers' => ['Content-Disposition'],

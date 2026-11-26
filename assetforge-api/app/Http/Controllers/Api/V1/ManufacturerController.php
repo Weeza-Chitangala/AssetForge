@@ -8,16 +8,22 @@ use App\Http\Resources\ManufacturerResource;
 use App\Models\Manufacturer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ManufacturerController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
         $query = Manufacturer::query();
+        $likeOp = DB::connection()->getDriverName() === 'pgsql' ? 'ILIKE' : 'LIKE';
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where('name', 'ILIKE', "%{$search}%")->orWhere('code', 'ILIKE', "%{$search}%");
+            // Group OR conditions so TenantScope's tenant_id predicate applies to every search branch.
+            $query->where(function ($q) use ($search, $likeOp) {
+                $q->where('name', $likeOp, "%{$search}%")
+                    ->orWhere('code', $likeOp, "%{$search}%");
+            });
         }
 
         $manufacturers = $query->latest()->get();

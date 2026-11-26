@@ -15,6 +15,7 @@ use App\Models\RepairJob;
 use App\Models\User;
 use App\Models\Warranty;
 use App\Traits\BelongsToTenant;
+use App\Traits\LogsTenantActivity;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -27,7 +28,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class EquipmentAsset extends Model
 {
-    use HasFactory, HasUuids, SoftDeletes, BelongsToTenant, LogsActivity;
+    use HasFactory, HasUuids, SoftDeletes, BelongsToTenant, LogsActivity, LogsTenantActivity;
 
     protected $table = 'equipment_assets';
 

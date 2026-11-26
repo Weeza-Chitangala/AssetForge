@@ -42,9 +42,9 @@ class RbacAuthorizationTest extends TestCase
         return $user;
     }
 
-    public function test_super_administrator_and_it_administrator_have_full_access(): void
+    public function test_super_user_and_administrator_have_full_access(): void
     {
-        foreach (['Super Administrator', 'IT Administrator'] as $role) {
+        foreach (['Super User', 'Administrator'] as $role) {
             $user = $this->userWithRole($role);
             $headers = ['Authorization' => 'Bearer ' . $user->createToken('test')->plainTextToken];
 
@@ -52,7 +52,7 @@ class RbacAuthorizationTest extends TestCase
             $this->withHeaders($headers)->getJson('/api/v1/users')->assertOk();
             $this->withHeaders($headers)->getJson('/api/v1/reports/inventory')->assertOk();
             $this->withHeaders($headers)->getJson('/api/v1/audit-logs')->assertOk();
-            $this->withHeaders($headers)->getJson('/api/v1/test-permission')->assertOk();
+            $this->withHeaders($headers)->getJson('/api/v1/test-permission')->assertNotFound();
             $this->withHeaders($headers)->postJson('/api/v1/categories', [
                 'name' => 'Category by ' . $role,
                 'code' => substr(md5($role), 0, 5),
@@ -80,7 +80,8 @@ class RbacAuthorizationTest extends TestCase
             'password' => 'Password123!',
         ])->assertForbidden();
         $this->withHeaders($headers)->postJson('/api/v1/categories', ['name' => 'Blocked Cat'])->assertForbidden();
-        $this->withHeaders($headers)->getJson('/api/v1/test-permission')->assertForbidden();
+        $this->withHeaders($headers)->getJson('/api/v1/audit-logs')->assertForbidden();
+        $this->withHeaders($headers)->getJson('/api/v1/test-permission')->assertNotFound();
     }
 
     public function test_technician_can_handle_repairs_and_update_assets_but_not_reports_or_delete_assets(): void

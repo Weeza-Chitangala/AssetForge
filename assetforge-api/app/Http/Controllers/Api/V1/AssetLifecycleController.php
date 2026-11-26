@@ -11,12 +11,18 @@ use App\Http\Resources\EquipmentAssetResource;
 use App\Models\AssetMovement;
 use App\Models\AssetStatus;
 use App\Models\EquipmentAsset;
+use App\Services\AssetCustodyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class AssetLifecycleController extends Controller
 {
+    public function __construct(
+        private readonly AssetCustodyService $custodyService,
+    ) {
+    }
+
     protected array $movementRelations = [
         'fromUser', 'toUser', 'fromLocation', 'toLocation',
         'fromDepartment', 'toDepartment', 'fromStatus', 'toStatus', 'performer'
@@ -41,6 +47,12 @@ class AssetLifecycleController extends Controller
      */
     public function checkout(CheckoutAssetRequest $request, EquipmentAsset $asset): JsonResponse
     {
+        abort_unless(
+            $request->user() && $this->custodyService->canManageCustody($request->user()),
+            403,
+            'You do not have permission (assets.transfer) to perform asset custody operations.'
+        );
+
         $data = $request->validated();
 
         $assignedStatus = AssetStatus::where('code', 'ASSIGNED')->first();
@@ -91,6 +103,12 @@ class AssetLifecycleController extends Controller
      */
     public function checkin(CheckinAssetRequest $request, EquipmentAsset $asset): JsonResponse
     {
+        abort_unless(
+            $request->user() && $this->custodyService->canManageCustody($request->user()),
+            403,
+            'You do not have permission (assets.transfer) to perform asset custody operations.'
+        );
+
         $data = $request->validated();
 
         $availableStatus = AssetStatus::where('code', 'AVAILABLE')->first();
@@ -140,6 +158,12 @@ class AssetLifecycleController extends Controller
      */
     public function transfer(TransferAssetRequest $request, EquipmentAsset $asset): JsonResponse
     {
+        abort_unless(
+            $request->user() && $this->custodyService->canManageCustody($request->user()),
+            403,
+            'You do not have permission (assets.transfer) to perform asset custody operations.'
+        );
+
         $data = $request->validated();
 
         DB::transaction(function () use ($asset, $data, $request) {

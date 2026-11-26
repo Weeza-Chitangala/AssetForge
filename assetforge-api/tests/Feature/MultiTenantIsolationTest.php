@@ -58,7 +58,7 @@ class MultiTenantIsolationTest extends TestCase
             'company_id' => $compA->id,
             'status' => 'active',
         ]);
-        $this->adminA->assignRole('IT Administrator');
+        $this->adminA->assignRole('Administrator');
 
         $this->adminB = User::create([
             'name' => 'Admin B',
@@ -68,7 +68,7 @@ class MultiTenantIsolationTest extends TestCase
             'company_id' => $compB->id,
             'status' => 'active',
         ]);
-        $this->adminB->assignRole('IT Administrator');
+        $this->adminB->assignRole('Administrator');
 
         $catA = Category::create(['tenant_id' => $this->tenantA->id, 'name' => 'Laptops A', 'code' => 'LAPA', 'status' => 'active']);
         $catB = Category::create(['tenant_id' => $this->tenantB->id, 'name' => 'Laptops B', 'code' => 'LAPB', 'status' => 'active']);

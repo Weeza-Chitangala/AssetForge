@@ -8,12 +8,14 @@ use App\Http\Resources\AssetModelResource;
 use App\Models\AssetModel;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AssetModelController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
         $query = AssetModel::with(['manufacturer', 'category']);
+        $likeOp = DB::connection()->getDriverName() === 'pgsql' ? 'ILIKE' : 'LIKE';
 
         if ($request->filled('manufacturer_id')) {
             $query->where('manufacturer_id', $request->manufacturer_id);
@@ -23,7 +25,11 @@ class AssetModelController extends Controller
         }
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where('name', 'ILIKE', "%{$search}%")->orWhere('model_number', 'ILIKE', "%{$search}%");
+            // Group OR conditions so TenantScope and catalog filters apply to every search branch.
+            $query->where(function ($q) use ($search, $likeOp) {
+                $q->where('name', $likeOp, "%{$search}%")
+                    ->orWhere('model_number', $likeOp, "%{$search}%");
+            });
         }
 
         $models = $query->latest()->get();

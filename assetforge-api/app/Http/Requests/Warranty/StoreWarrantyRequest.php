@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Warranty;
 
+use App\Models\EquipmentAsset;
+use App\Rules\TenantRecordExists;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreWarrantyRequest extends FormRequest
@@ -13,8 +15,10 @@ class StoreWarrantyRequest extends FormRequest
 
     public function rules(): array
     {
+        $tenantId = $this->user()?->tenant_id;
+
         return [
-            'equipment_asset_id' => ['required', 'uuid', 'exists:equipment_assets,id'],
+            'equipment_asset_id' => ['required', 'uuid', new TenantRecordExists(EquipmentAsset::class, $tenantId)],
             'provider_name' => ['required', 'string', 'max:255'],
             'policy_number' => ['nullable', 'string', 'max:100'],
             'warranty_type' => ['nullable', 'string', 'in:standard,extended,accidental_damage,onsite'],

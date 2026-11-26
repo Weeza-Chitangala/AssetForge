@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureActiveSession;
 use App\Http\Middleware\IdentifyTenant;
 use App\Http\Middleware\SecurityHeadersMiddleware;
 use Illuminate\Foundation\Application;
@@ -20,8 +21,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Prevent redirects to route('login') when API requests fail authentication
         $middleware->redirectGuestsTo(fn (Request $request) => $request->is('api/*') ? null : route('login'));
 
-        // Register route aliases (Spatie)
+        // Register route aliases (Spatie + active session check)
         $middleware->alias([
+            'active.session' => EnsureActiveSession::class,
             'permission' => PermissionMiddleware::class,
             'role' => RoleMiddleware::class,
         ]);
