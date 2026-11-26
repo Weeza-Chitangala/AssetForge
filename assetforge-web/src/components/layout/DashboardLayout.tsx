@@ -29,7 +29,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, permission: 'dashboard.view' },
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, permission: 'dashboard.view' },
   { to: '/assets', label: 'Equipment Assets', icon: Laptop, permission: 'assets.view' },
   { to: '/warranties', label: 'Warranties', icon: ShieldCheck, permission: 'assets.view' },
   { to: '/repairs', label: 'Repairs', icon: Wrench, permission: 'repairs.view' },
@@ -120,7 +120,7 @@ export const DashboardLayout: React.FC = () => {
           <NavLink
             key={item.to}
             to={item.to}
-            end={item.to === '/'}
+            end={item.to === '/dashboard'}
             onClick={onClick}
             className={({ isActive }) =>
               cn(

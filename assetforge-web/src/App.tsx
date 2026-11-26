@@ -2,6 +2,9 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { DashboardLayout } from './components/layout/DashboardLayout';
+import { PublicLayout } from './components/public/PublicLayout';
+import { LandingPage } from './pages/public/LandingPage';
+import { RegisterPage } from './pages/public/RegisterPage';
 import { LoginPage } from './pages/LoginPage';
 import { Dashboard } from './pages/Dashboard';
 import { AssetsPage } from './pages/AssetsPage';
@@ -17,10 +20,14 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          <Route element={<PublicLayout />}>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+          </Route>
+
           <Route path="/login" element={<LoginPage />} />
 
           <Route
-            path="/"
             element={
               <ProtectedRoute>
                 <DashboardLayout />
@@ -28,7 +35,7 @@ function App() {
             }
           >
             <Route
-              index
+              path="/dashboard"
               element={
                 <ProtectedRoute requiredPermission="dashboard.view">
                   <Dashboard />
@@ -36,7 +43,7 @@ function App() {
               }
             />
             <Route
-              path="assets"
+              path="/assets"
               element={
                 <ProtectedRoute requiredPermission="assets.view">
                   <AssetsPage />
@@ -44,7 +51,7 @@ function App() {
               }
             />
             <Route
-              path="assets/:id"
+              path="/assets/:id"
               element={
                 <ProtectedRoute requiredPermission="assets.view">
                   <AssetDetailPage />
@@ -52,7 +59,7 @@ function App() {
               }
             />
             <Route
-              path="warranties"
+              path="/warranties"
               element={
                 <ProtectedRoute requiredPermission="assets.view">
                   <WarrantiesPage />
@@ -60,7 +67,7 @@ function App() {
               }
             />
             <Route
-              path="repairs"
+              path="/repairs"
               element={
                 <ProtectedRoute requiredPermission="repairs.view">
                   <RepairsPage />
@@ -68,7 +75,7 @@ function App() {
               }
             />
             <Route
-              path="reports"
+              path="/reports"
               element={
                 <ProtectedRoute requiredPermission="reports.view">
                   <ReportsPage />
@@ -76,7 +83,7 @@ function App() {
               }
             />
             <Route
-              path="audit-logs"
+              path="/audit-logs"
               element={
                 <ProtectedRoute requiredPermission="audit.view">
                   <AuditLogsPage />
@@ -84,7 +91,7 @@ function App() {
               }
             />
             <Route
-              path="settings"
+              path="/settings"
               element={
                 <ProtectedRoute requiredPermission="settings.manage">
                   <SettingsPage />
